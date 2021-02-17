@@ -1,0 +1,85 @@
+{
+  "pluginAlias": "tado",
+  "pluginType": "platform",
+  "singular": true,
+  "headerDisplay": "Your tado° credentials",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "email": {
+        "title": "Email",
+        "type": "string",
+        "required": true,
+        "format": "email"
+      },
+      "password": {
+        "title": "Password",
+        "type": "string",
+        "required": true
+      },
+      "homeId": {
+        "title": "Home ID",
+        "type": "string",
+        "placeholder": "12345",
+        "description": "Leave blank for auto discovery"
+      },
+      "overlayType": {
+        "title": "Duration",
+        "type": "string",
+        "default": "NEXT_TIME_BLOCK",
+        "oneOf": [
+          { "title": "Until next time block", "enum": ["NEXT_TIME_BLOCK"] },
+          { "title": "Until cancelled", "enum": ["MANUAL"] },
+          { "title": "Timer", "enum": ["TIMER"] }
+        ],
+        "required": true
+      },
+      "overlayDuration": {
+        "title": "Time (in minutes)",
+        "type": "integer",
+        "minimum": 5,
+        "maximum": 600,
+        "default": 60,
+        "condition": {
+          "functionBody": "return model.overlayType === 'TIMER';"
+        }
+      },
+      "analytics": {
+        "title": "Enable Analytics",
+        "type": "boolean",
+        "default": false,
+        "description": "This logs the whole communication with the tado° servers to the console. This may expose sensitive information. Use with caution and at your own risk."
+      },
+      "updateInterval": {
+        "title": "Update interval (in seconds)",
+        "type": "integer",
+        "minimum": 15,
+        "maximum": 3600,
+        "default": 300
+      }
+    }
+  },
+  "form": [
+    "email",
+    "password",
+    "homeId",
+    {
+      "type": "fieldset",
+      "expandable": true,
+      "title": "Manual Override",
+      "items": [
+        "overlayType",
+        "overlayDuration"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "expandable": true,
+      "title": "Troubleshooting",
+      "items": [
+        "analytics",
+        "updateInterval"
+      ]
+    }
+  ]
+}
