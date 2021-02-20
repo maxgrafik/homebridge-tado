@@ -96,7 +96,7 @@ export class TadoPlatform implements DynamicPlatformPlugin {
                             displayUnits : temperatureUnit,
                             humidity     : 0,
                             batteryState : zone.devices[zoneLeader].batteryState,
-                        }
+                        },
                     });
                 }
             });
