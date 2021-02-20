@@ -5,4 +5,4 @@ export const PLATFORM_NAME = 'tado';
 export const PLUGIN_NAME = 'homebridge-platform-tado';
 
 // plugin version
-export const PLUGIN_VERSION = '1.0.0';
+export const PLUGIN_VERSION = '1.0.1';

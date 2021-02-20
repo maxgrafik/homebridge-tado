@@ -27,7 +27,7 @@ export class TadoThermostat {
         this.accessory.getService(this.platform.Service.AccessoryInformation)!
             .setCharacteristic(this.platform.Characteristic.Manufacturer, 'tado°')
             .setCharacteristic(this.platform.Characteristic.Model, accessory.context.device.deviceType)
-            .setCharacteristic(this.platform.Characteristic.SerialNumber, accessory.context.device.serialNo)
+            .setCharacteristic(this.platform.Characteristic.SerialNumber, accessory.context.device.serialShort)
             .setCharacteristic(this.platform.Characteristic.FirmwareRevision, accessory.context.device.FwVersion);
 
 
@@ -38,7 +38,7 @@ export class TadoThermostat {
         this.thermostatService = this.accessory.getService(this.platform.Service.Thermostat) || this.accessory.addService(this.platform.Service.Thermostat);
 
         // set the service name, this is what is displayed as the default name on the Home app
-        this.thermostatService.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.displayName);
+        this.thermostatService.setCharacteristic(this.platform.Characteristic.Name, this.accessory.displayName);
     
         // hide cooling option from target state
         // works fine with Apple's Home app, but not with Eve or Homebridge UI
@@ -151,7 +151,7 @@ export class TadoThermostat {
 
     setTemperatureDisplayUnits(value: CharacteristicValue, callback: CharacteristicSetCallback) {
         callback(null);
-        // How can we return an error here? This does not work:
+        // Can we return a read-only error here? This does not work:
         //callback(this.api.hap.Status.READ_ONLY_CHARACTERISTIC);
     }
 
@@ -183,7 +183,7 @@ export class TadoThermostat {
         let targetState = powered ? (this.hasOverlay ? 1 : 3) : 0;
 
         if (this.accessory.context.device.targetState !== targetState) {
-            this.log.info('%s is %s', this.accessory.context.device.displayName, ['off', 'in Manual Mode', 'wtf?', 'in Automatic Mode'][targetState]);
+            this.log.info('%s is %s', this.accessory.displayName, ['off', 'in Manual Mode', 'wtf?', 'in Automatic Mode'][targetState]);
         }
 
         let currentTemp = state.sensorDataPoints.insideTemperature.celsius;
@@ -251,8 +251,17 @@ export class TadoThermostat {
         let overlay: any;
 
         let targetState = state;
-        let targetTempC = temperature || this.accessory.context.device.targetTemp;
-        let targetTempF = Math.round(((targetTempC*1.8)+32)*10)/10;
+        let targetTemp  = temperature || this.accessory.context.device.targetTemp;
+        let targetTempC;
+        let targetTempF;
+
+        if (this.accessory.context.device.displayUnits === 0) {
+            targetTempF = Math.round(((targetTemp*1.8)+32)*10)/10;
+            targetTempC = targetTemp;
+        } else {
+            targetTempF = Math.round((targetTemp*1.8)+32);
+            targetTempC = Math.round(((targetTempF-32)/1.8)*10)/10;
+        }
 
         if (targetState === 0) {
             // turn off
@@ -296,7 +305,7 @@ export class TadoThermostat {
 
         this.throttleOverlay = setTimeout(() => {
             if (overlay) {
-                this.log.info('Setting mode for %s...', this.accessory.context.device.displayName);
+                this.log.info('Setting mode for %s...', this.accessory.displayName);
                 this.platform.tadoClient.setOverlay(this.accessory.context.device.zoneId, overlay).then((response: any) => {
                     this.platform.forceUpdate(this.accessory.context.device.zoneId);
                 }).catch(error => {
@@ -304,7 +313,7 @@ export class TadoThermostat {
                     this.log.error('[API] %s', error);
                 });
             } else if (this.hasOverlay) {
-                this.log.info('Setting %s to Automatic Mode...', this.accessory.context.device.displayName);
+                this.log.info('Setting %s to Automatic Mode...', this.accessory.displayName);
                 this.platform.tadoClient.deleteOverlay(this.accessory.context.device.zoneId).then((response: any) => {
                     this.platform.forceUpdate(this.accessory.context.device.zoneId);
                 }).catch(error => {
