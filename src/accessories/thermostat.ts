@@ -117,8 +117,7 @@ export class TadoThermostat {
 
     setTargetState(value: CharacteristicValue, callback: CharacteristicSetCallback) {
         if (value !== this.accessory.context.device.targetState) {
-            const overlay = this.createOverlay(value, null);
-            this.setOverlay(overlay);
+            this.setOverlay(value, null);
         }
         callback(null);
     }
@@ -139,8 +138,7 @@ export class TadoThermostat {
 
     setTargetTemperature(value: CharacteristicValue, callback: CharacteristicSetCallback) {
         if (value !== this.accessory.context.device.targetTemp) {
-            const overlay = this.createOverlay(1, value);
-            this.setOverlay(overlay);
+            this.setOverlay(1, value);
         }
         callback(null);
     }
@@ -224,33 +222,72 @@ export class TadoThermostat {
         this.batteryService.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, batteryState);
     }
 
-    createOverlay(state, temperature) {
-        
-        let terminationRule = {};
+    setOverlay(state, temperature) {
 
-        switch(this.platform.config.overlayType) {
+        if (this.throttleOverlay) {
+            clearTimeout(this.throttleOverlay);
+        }
+
+        this.throttleOverlay = setTimeout(() => {
+
+            if (state === 3 && this.hasOverlay) {
+                this.log.info('Setting %s to Automatic Mode...', this.accessory.displayName);
+                this.platform.tadoClient.deleteOverlay(this.accessory.context.device.zoneId).then((response: any) => {
+                    this.platform.forceUpdate(this.accessory.context.device.zoneId);
+                }).catch(error => {
+                    this.platform.forceUpdate(this.accessory.context.device.zoneId);
+                    this.log.error('[API] %s', error);
+                });
+
+            } else if (state < 2) {
+                this.platform.tadoClient.getZoneDefaultOverlay(this.accessory.context.device.zoneId).then((defaultOverlay: any) => {
+
+                    const overlay = this.createOverlay(defaultOverlay, state, temperature);
+
+                    this.log.info('Setting mode for %s...', this.accessory.displayName);
+                    this.platform.tadoClient.setOverlay(this.accessory.context.device.zoneId, overlay).then((response: any) => {
+                        this.platform.forceUpdate(this.accessory.context.device.zoneId);
+                    }).catch(error => {
+                        this.platform.forceUpdate(this.accessory.context.device.zoneId);
+                        this.log.error('[API] %s', error);
+                    });
+
+                }).catch(error => {
+                    this.log.error('[API] %s', error);
+                });
+
+            } else if (state === 2) {
+                // ignore Characteristic.TargetHeatingCoolingState.COOL
+                this.thermostatService.updateCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState, this.accessory.context.device.targetState);
+            }
+
+        }, 800);
+    }
+
+    createOverlay(defaultOverlay, state, temperature) {
+        
+        let terminationCondition = {};
+
+        switch(defaultOverlay.terminationCondition.type) {
+        case 'TIMER':
+            terminationCondition = {
+                typeSkillBasedApp: "TIMER",
+                durationInSeconds: defaultOverlay.terminationCondition.durationInSeconds
+            }
+            break;
         case 'MANUAL':
-            terminationRule = {
+            terminationCondition = {
                 typeSkillBasedApp: "MANUAL"
             }
             break;
-        case 'TIMER':
-            terminationRule = {
-                typeSkillBasedApp: "TIMER",
-                durationInSeconds: (<number> this.platform.config.overlayDuration || 60) * 60
-            }
-            break;
-        case 'NEXT_TIME_BLOCK':
         default:
-            terminationRule = {
+            terminationCondition = {
                 typeSkillBasedApp: "NEXT_TIME_BLOCK"
             }
         }
 
+        let overlay: any = null;
 
-        let overlay: any;
-
-        let targetState = state;
         let targetTemp  = temperature || this.accessory.context.device.targetTemp;
         let targetTempC;
         let targetTempF;
@@ -263,19 +300,19 @@ export class TadoThermostat {
             targetTempC = Math.round(((targetTempF-32)/1.8)*10)/10;
         }
 
-        if (targetState === 0) {
-            // turn off
+        if (state === 0) { // turn off
             overlay = {
+                type: "MANUAL",
                 setting: {
                     type: "HEATING",
                     power: "OFF"
                 },
-                termination: terminationRule
+                termination: terminationCondition
             }
 
-        } else if (targetState === 1) {
-            // manual mode
+        } else if (state === 1) { // manual mode
             overlay = {
+                type: "MANUAL",
                 setting: {
                     type: "HEATING",
                     power: "ON",
@@ -284,44 +321,11 @@ export class TadoThermostat {
                         fahrenheit: targetTempF
                     }
                 },
-                termination: terminationRule
+                termination: terminationCondition
             }
-
-        } else {
-            // ignore any other state and revert to auto mode
-            targetState = 3;
-            overlay = null;
-
         }
 
         return overlay;
-    }
-
-    setOverlay(overlay) {
-
-        if (this.throttleOverlay) {
-            clearTimeout(this.throttleOverlay);
-        }
-
-        this.throttleOverlay = setTimeout(() => {
-            if (overlay) {
-                this.log.info('Setting mode for %s...', this.accessory.displayName);
-                this.platform.tadoClient.setOverlay(this.accessory.context.device.zoneId, overlay).then((response: any) => {
-                    this.platform.forceUpdate(this.accessory.context.device.zoneId);
-                }).catch(error => {
-                    this.platform.forceUpdate(this.accessory.context.device.zoneId);
-                    this.log.error('[API] %s', error);
-                });
-            } else if (this.hasOverlay) {
-                this.log.info('Setting %s to Automatic Mode...', this.accessory.displayName);
-                this.platform.tadoClient.deleteOverlay(this.accessory.context.device.zoneId).then((response: any) => {
-                    this.platform.forceUpdate(this.accessory.context.device.zoneId);
-                }).catch(error => {
-                    this.platform.forceUpdate(this.accessory.context.device.zoneId);
-                    this.log.error('[API] %s', error);
-                });
-            }
-        }, 800);
     }
 
 }

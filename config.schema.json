@@ -23,27 +23,6 @@
         "placeholder": "12345",
         "description": "Leave blank for auto discovery"
       },
-      "overlayType": {
-        "title": "Duration",
-        "type": "string",
-        "default": "NEXT_TIME_BLOCK",
-        "oneOf": [
-          { "title": "Until next time block", "enum": ["NEXT_TIME_BLOCK"] },
-          { "title": "Until cancelled", "enum": ["MANUAL"] },
-          { "title": "Timer", "enum": ["TIMER"] }
-        ],
-        "required": true
-      },
-      "overlayDuration": {
-        "title": "Time (in minutes)",
-        "type": "integer",
-        "minimum": 5,
-        "maximum": 600,
-        "default": 60,
-        "condition": {
-          "functionBody": "return model.overlayType === 'TIMER';"
-        }
-      },
       "analytics": {
         "title": "Enable Analytics",
         "type": "boolean",
@@ -63,15 +42,6 @@
     "email",
     "password",
     "homeId",
-    {
-      "type": "fieldset",
-      "expandable": true,
-      "title": "Manual Override",
-      "items": [
-        "overlayType",
-        "overlayDuration"
-      ]
-    },
     {
       "type": "fieldset",
       "expandable": true,

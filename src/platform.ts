@@ -66,9 +66,9 @@ export class TadoPlatform implements DynamicPlatformPlugin {
             
             const thermostats: any[] = [];
 
-            // find thermostats (zone.type === 'HEATING')
-            zones.forEach((zone: any) => {
+            for (const zone of zones) {
 
+                // find thermostats
                 if (zone.type === 'HEATING') {
                     
                     // find zone leader
@@ -99,7 +99,7 @@ export class TadoPlatform implements DynamicPlatformPlugin {
                         },
                     });
                 }
-            });
+            }
 
             // restore/register thermostat
             for (const thermostat of thermostats) {
@@ -159,7 +159,7 @@ export class TadoPlatform implements DynamicPlatformPlugin {
             this.lastBatteryUpdate = Date.now();
         }
 
-        this.tadoZones.forEach(async (tadoZone: TadoThermostat) => {
+        for (const tadoZone of this.tadoZones) {
 
             const accessory  = tadoZone.accessory;
             const thermostat = accessory.context.device;
@@ -179,7 +179,7 @@ export class TadoPlatform implements DynamicPlatformPlugin {
                     this.log.error('[API] %s', error);
                 });
             }
-        });
+        }
     }
 
     async forceUpdate(zoneId) {

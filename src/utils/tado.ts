@@ -223,6 +223,32 @@ export class TadoClient {
         });
     }
 
+    async getZoneDefaultOverlay(zoneId) {
+
+        await this.connect().catch(error => {
+            throw Error(error);
+        });
+
+        return new Promise((resolve, reject) => {
+            this.ajax.get('https://my.tado.com/api/v2/homes/'+this.homeId+'/zones/'+zoneId+'/defaultOverlay', this.accessToken).then((response: any) => {
+
+                if (this.platform.config.analytics === true) {
+                    this.platform.log.debug('[Analytics] Zone Default Overlay: %s', JSON.stringify(response, null, 2));
+                }
+
+                const status = this.getErrors(response, null);
+                if (status !== true) {
+                    reject(status);
+                } else {
+                    resolve(response);
+                }
+
+            }).catch(error => {
+                reject(error);
+            });
+        });
+    }
+
     async getDevices() {
         
         await this.connect().catch(error => {

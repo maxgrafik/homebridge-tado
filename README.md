@@ -1,5 +1,5 @@
-![GitHub package.json version](https://img.shields.io/github/package-json/v/maxgrafik/homebridge-platform-tado)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/maxgrafik/homebridge-platform-tado/Build%20and%20Lint)
+[![GitHub package.json version](https://img.shields.io/github/package-json/v/maxgrafik/homebridge-platform-tado)](https://github.com/maxgrafik/homebridge-platform-tado)
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/maxgrafik/homebridge-platform-tado/Build%20and%20Lint)](https://github.com/maxgrafik/homebridge-platform-tado/actions/workflows/build.yml)
 
 # homebridge-platform-tado
 
@@ -9,7 +9,7 @@
 
 This plugin exposes tado° thermostats to Apple's HomeKit. If you already own the HomeKit compatible tado° bridge, this plugin might not be for you.
 
-I started this project just for fun for my own use and to learn about coding plugins for homebridge. This is the first release so expect there to be bugs.
+I started this project just for fun for my own use and to learn about coding plugins for homebridge. This is at an early stage so expect there to be bugs.
 
 ## Configuration
 
@@ -23,8 +23,6 @@ I recommend using Homebridge UI to configure the plugin
         "email": "your_tado_email",
         "password": "your_tado_password",
         "homeId": "your_home_id",
-        "overlayType": "NEXT_TIME_BLOCK | MANUAL | TIMER",
-        "overlayDuration": 60,
         "analytics": false,
         "updateInterval": 300
     }
@@ -36,16 +34,9 @@ Option | Description | Default
 **email** | The email address you use to login into your tado° account | -
 **password** | Your tado° account password | -
 **homeId** | Your home ID. If you leave this blank, the plugin will try to auto discover it. If there is more than 1 home in your tado° account, see the log file for discovered home IDs and set accordingly | -
-**overlayType** | When to stop manual overrides to your schedule | NEXT_TIME_BLOCK
-**overlayDuration** | Time in minutes when used with overlayType TIMER | 60
 **analytics** | This logs the whole communication with the tado° servers to the console. This may expose sensitive information. Use with caution and at your own risk | false
 **updateInterval** | Time in seconds to request state updates from tado° | 300
 
-Overlay Types | Effect
-------------- | ------
-NEXT_TIME_BLOCK | A manual override will last until the next scheduled time block
-MANUAL | A manual override will last until you cancel
-TIMER | A manual override will last for *overlayDuration* minutes
 
 #### About update interval
 
