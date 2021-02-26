@@ -12,12 +12,12 @@ export class TadoThermostat {
     private thermostatService: Service;
     private batteryService: Service;
 
-    private hasOverlay: boolean = false;
+    private hasOverlay = false;
     private throttleOverlay!: NodeJS.Timeout;
 
     constructor(
         private readonly platform: TadoPlatform,
-        public readonly accessory: PlatformAccessory
+        public readonly accessory: PlatformAccessory,
     ) {
 
         this.api = this.platform.api;
@@ -39,7 +39,7 @@ export class TadoThermostat {
 
         // set the service name, this is what is displayed as the default name on the Home app
         this.thermostatService.setCharacteristic(this.platform.Characteristic.Name, this.accessory.displayName);
-    
+
         // hide cooling option from target state
         // works fine with Apple's Home app, but not with Eve or Homebridge UI
         this.thermostatService.getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState).setProps({
@@ -175,10 +175,10 @@ export class TadoThermostat {
 
         this.hasOverlay = state.overlayType !== null;
 
-        let powered = state.setting.power === 'ON';
+        const powered = state.setting.power === 'ON';
 
-        let currentState = state.activityDataPoints.heatingPower.percentage > 0 ? 1 : 0;
-        let targetState = powered ? (this.hasOverlay ? 1 : 3) : 0;
+        const currentState = state.activityDataPoints.heatingPower.percentage > 0 ? 1 : 0;
+        const targetState = powered ? (this.hasOverlay ? 1 : 3) : 0;
 
         if (this.accessory.context.device.targetState !== targetState) {
             this.log.info('%s is %s', this.accessory.displayName, ['off', 'in Manual Mode', 'wtf?', 'in Automatic Mode'][targetState]);
@@ -190,7 +190,7 @@ export class TadoThermostat {
         currentTemp = (Math.round(currentTemp*10)/10);
         targetTemp = (Math.round(targetTemp*10)/10);
 
-        let humidity = state.sensorDataPoints.humidity.percentage;
+        const humidity = state.sensorDataPoints.humidity.percentage;
 
         this.accessory.context.device.currentState = currentState;
         this.accessory.context.device.targetState = targetState;
@@ -232,7 +232,7 @@ export class TadoThermostat {
 
             if (state === 3 && this.hasOverlay) {
                 this.log.info('Setting %s to Automatic Mode...', this.accessory.displayName);
-                this.platform.tadoClient.deleteOverlay(this.accessory.context.device.zoneId).then((response: any) => {
+                this.platform.tadoClient.deleteOverlay(this.accessory.context.device.zoneId).then(() => {
                     this.platform.forceUpdate(this.accessory.context.device.zoneId);
                 }).catch(error => {
                     this.platform.forceUpdate(this.accessory.context.device.zoneId);
@@ -245,7 +245,7 @@ export class TadoThermostat {
                     const overlay = this.createOverlay(defaultOverlay, state, temperature);
 
                     this.log.info('Setting mode for %s...', this.accessory.displayName);
-                    this.platform.tadoClient.setOverlay(this.accessory.context.device.zoneId, overlay).then((response: any) => {
+                    this.platform.tadoClient.setOverlay(this.accessory.context.device.zoneId, overlay).then(() => {
                         this.platform.forceUpdate(this.accessory.context.device.zoneId);
                     }).catch(error => {
                         this.platform.forceUpdate(this.accessory.context.device.zoneId);
@@ -265,30 +265,31 @@ export class TadoThermostat {
     }
 
     createOverlay(defaultOverlay, state, temperature) {
-        
+
         let terminationCondition = {};
 
         switch(defaultOverlay.terminationCondition.type) {
-        case 'TIMER':
-            terminationCondition = {
-                typeSkillBasedApp: "TIMER",
-                durationInSeconds: defaultOverlay.terminationCondition.durationInSeconds
-            }
-            break;
-        case 'MANUAL':
-            terminationCondition = {
-                typeSkillBasedApp: "MANUAL"
-            }
-            break;
-        default:
-            terminationCondition = {
-                typeSkillBasedApp: "NEXT_TIME_BLOCK"
-            }
+            case 'TIMER':
+                terminationCondition = {
+                    typeSkillBasedApp: 'TIMER',
+                    durationInSeconds: defaultOverlay.terminationCondition.durationInSeconds,
+                };
+                break;
+            case 'MANUAL':
+                terminationCondition = {
+                    typeSkillBasedApp: 'MANUAL',
+                };
+                break;
+            default:
+                terminationCondition = {
+                    typeSkillBasedApp: 'NEXT_TIME_BLOCK',
+                };
         }
 
         let overlay: any = null;
 
-        let targetTemp  = temperature || this.accessory.context.device.targetTemp;
+        const targetTemp  = temperature || this.accessory.context.device.targetTemp;
+
         let targetTempC;
         let targetTempF;
 
@@ -302,27 +303,27 @@ export class TadoThermostat {
 
         if (state === 0) { // turn off
             overlay = {
-                type: "MANUAL",
+                type: 'MANUAL',
                 setting: {
-                    type: "HEATING",
-                    power: "OFF"
+                    type: 'HEATING',
+                    power: 'OFF',
                 },
-                termination: terminationCondition
-            }
+                termination: terminationCondition,
+            };
 
         } else if (state === 1) { // manual mode
             overlay = {
-                type: "MANUAL",
+                type: 'MANUAL',
                 setting: {
-                    type: "HEATING",
-                    power: "ON",
+                    type: 'HEATING',
+                    power: 'ON',
                     temperature: {
                         celsius: targetTempC,
-                        fahrenheit: targetTempF
-                    }
+                        fahrenheit: targetTempF,
+                    },
                 },
-                termination: terminationCondition
-            }
+                termination: terminationCondition,
+            };
         }
 
         return overlay;

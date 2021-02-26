@@ -63,14 +63,14 @@ export class TadoPlatform implements DynamicPlatformPlugin {
         });
 
         this.tadoClient.getZones().then((zones: any) => {
-            
+
             const thermostats: any[] = [];
 
             for (const zone of zones) {
 
                 // find thermostats
                 if (zone.type === 'HEATING') {
-                    
+
                     // find zone leader
                     let zoneLeader = 0;
                     zone.devices.some((device, index) => {
@@ -103,7 +103,7 @@ export class TadoPlatform implements DynamicPlatformPlugin {
 
             // restore/register thermostat
             for (const thermostat of thermostats) {
-                
+
                 const existingThermostat = this.accessories.find(accessory => accessory.UUID === thermostat.UUID);
 
                 if (existingThermostat) {

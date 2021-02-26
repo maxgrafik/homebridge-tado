@@ -9,16 +9,16 @@ export class TadoClient {
 
     private ajax!: Ajax;
 
-    private username: string = '';
-    private password: string = '';
-    public  homeId: string = '';
+    private username = '';
+    private password = '';
+    public  homeId = '';
 
-    private accessToken: string = '';
-    private refreshToken: string = '';
-    private expires: number = 0;
+    private accessToken = '';
+    private refreshToken = '';
+    private expires = 0;
 
     constructor(
-        private readonly platform: TadoPlatform
+        private readonly platform: TadoPlatform,
     ) {
         this.ajax = new Ajax();
     }
@@ -72,7 +72,7 @@ export class TadoClient {
 
     getAccessToken(refresh) {
         return new Promise((resolve, reject) => {
-            
+
             let credentials = {};
 
             if (refresh) {
@@ -81,7 +81,7 @@ export class TadoClient {
                     grant_type    : 'refresh_token',
                     refresh_token : this.refreshToken,
                     scope         : 'home.user',
-                    client_secret : 'wZaRN7rpjn3FoNyF5IFuxg9uMzYJcvOoQ8QWiIqS3hfk6gLhVlG57j5YNoZL2Rtc'
+                    client_secret : 'wZaRN7rpjn3FoNyF5IFuxg9uMzYJcvOoQ8QWiIqS3hfk6gLhVlG57j5YNoZL2Rtc',
                 };
             } else {
                 credentials = {
@@ -90,7 +90,7 @@ export class TadoClient {
                     username      : this.username,
                     password      : this.password,
                     scope         : 'home.user',
-                    client_secret : 'wZaRN7rpjn3FoNyF5IFuxg9uMzYJcvOoQ8QWiIqS3hfk6gLhVlG57j5YNoZL2Rtc'
+                    client_secret : 'wZaRN7rpjn3FoNyF5IFuxg9uMzYJcvOoQ8QWiIqS3hfk6gLhVlG57j5YNoZL2Rtc',
                 };
             }
 
@@ -112,7 +112,7 @@ export class TadoClient {
             });
         });
     }
-    
+
     getHomeId() {
         return new Promise((resolve, reject) => {
             this.ajax.get('https://my.tado.com/api/v2/me', this.accessToken).then((response: any) => {
@@ -250,7 +250,7 @@ export class TadoClient {
     }
 
     async getDevices() {
-        
+
         await this.connect().catch(error => {
             throw Error(error);
         });
@@ -276,7 +276,7 @@ export class TadoClient {
     }
 
     async setOverlay(zoneId, overlay) {
-        
+
         await this.connect().catch(error => {
             throw Error(error);
         });
@@ -307,7 +307,7 @@ export class TadoClient {
     }
 
     async deleteOverlay(zoneId) {
-        
+
         await this.connect().catch(error => {
             throw Error(error);
         });
@@ -321,7 +321,7 @@ export class TadoClient {
             this.ajax.delete('https://my.tado.com/api/v2/homes/'+this.homeId+'/zones/'+zoneId+'/overlay', this.accessToken).then((response: any) => {
 
                 // not sure whether we ever get a response here
-                
+
                 if (this.platform.config.analytics === true) {
                     this.platform.log.debug('[Analytics] Delete Overlay Response: %s', response);
                 }
@@ -338,13 +338,13 @@ export class TadoClient {
         if (!response) {
             return 'Response contains no data';
         }
-        if (response.hasOwnProperty('errors')) {
+        if (Object.prototype.hasOwnProperty.call(response, 'errors')) {
             return response.errors[0].title;
         }
-        if (response.hasOwnProperty('error_description')) {
+        if (Object.prototype.hasOwnProperty.call(response, 'error_description')) {
             return response.error_description;
         }
-        if (reqField && !response.hasOwnProperty(reqField)) {
+        if (reqField && !Object.prototype.hasOwnProperty.call(response, reqField)) {
             return 'No ' + reqField + ' found';
         }
         return true;

@@ -14,12 +14,12 @@ export class Ajax {
     post(url, data) {
 
         return new Promise((resolve, reject) => {
-            
+
             const options = {
                 method: 'POST',
                 headers: {
-                    'Content-Type' : 'application/x-www-form-urlencoded'
-                }
+                    'Content-Type' : 'application/x-www-form-urlencoded',
+                },
             };
 
             const request = https.request(url, options, (response) => {
@@ -57,11 +57,11 @@ export class Ajax {
     get(url, token) {
 
         return new Promise((resolve, reject) => {
-            
+
             const options = {
                 headers: {
-                    'Authorization': 'Bearer ' + token
-                }
+                    'Authorization': 'Bearer ' + token,
+                },
             };
 
             const request = https.request(url, options, (response) => {
@@ -98,13 +98,13 @@ export class Ajax {
     put(url, token, obj) {
 
         return new Promise((resolve, reject) => {
-            
+
             const options = {
                 method: 'PUT',
                 headers: {
                     'Authorization': 'Bearer ' + token,
                     'Content-Type' : 'application/json; charset=utf-8',
-                }
+                },
             };
 
             const request = https.request(url, options, (response) => {
@@ -142,13 +142,13 @@ export class Ajax {
     delete(url, token) {
 
         return new Promise((resolve, reject) => {
-            
+
             const options = {
                 method: 'DELETE',
                 headers: {
                     'Authorization': 'Bearer ' + token,
                     'Content-Type' : 'application/json; charset=utf-8',
-                }
+                },
             };
 
             const request = https.request(url, options, (response) => {
@@ -184,7 +184,7 @@ export class Ajax {
         let encoded = '';
 
         for (const key in obj) {
-            if (obj.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(obj, key)) {
                 encoded += (encoded ? '&' : '') + this.encodeString(key) + '=' + this.encodeString(obj[key]);
             }
         }
