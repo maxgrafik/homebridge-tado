@@ -1,5 +1,4 @@
 [![GitHub package.json version](https://img.shields.io/github/package-json/v/maxgrafik/homebridge-platform-tado)](https://github.com/maxgrafik/homebridge-platform-tado)
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/maxgrafik/homebridge-platform-tado/Build%20and%20Lint)](https://github.com/maxgrafik/homebridge-platform-tado/actions/workflows/build.yml)
 
 # homebridge-platform-tado
 

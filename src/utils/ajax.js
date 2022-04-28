@@ -1,10 +1,12 @@
-import * as https from 'https';
+"use strict";
+
+const https = require("https");
 
 /**
  * Ajax Functions
  */
 
-export class Ajax {
+class Ajax {
 
     /**
      * Ajax POST (form urlencoded)
@@ -16,21 +18,21 @@ export class Ajax {
         return new Promise((resolve, reject) => {
 
             const options = {
-                method: 'POST',
+                method: "POST",
                 headers: {
-                    'Content-Type' : 'application/x-www-form-urlencoded',
+                    "Content-Type": "application/x-www-form-urlencoded",
                 },
             };
 
             const request = https.request(url, options, (response) => {
 
-                let data = '';
+                let data = "";
 
-                response.on('data', (chunk) => {
+                response.on("data", (chunk) => {
                     data = data + chunk.toString();
                 });
 
-                response.on('end', () => {
+                response.on("end", () => {
                     try {
                         resolve(JSON.parse(data));
                     } catch (e) {
@@ -39,15 +41,13 @@ export class Ajax {
                 });
             });
 
-            request.on('error', (e) => {
+            request.on("error", (e) => {
                 reject(e.message);
             });
 
             request.write(this.urlencodeObject(data));
             request.end();
-
         });
-
     }
 
     /**
@@ -60,19 +60,19 @@ export class Ajax {
 
             const options = {
                 headers: {
-                    'Authorization': 'Bearer ' + token,
+                    "Authorization": "Bearer " + token,
                 },
             };
 
             const request = https.request(url, options, (response) => {
 
-                let data = '';
+                let data = "";
 
-                response.on('data', (chunk) => {
+                response.on("data", (chunk) => {
                     data = data + chunk.toString();
                 });
 
-                response.on('end', () => {
+                response.on("end", () => {
                     try {
                         resolve(JSON.parse(data));
                     } catch (e) {
@@ -81,14 +81,12 @@ export class Ajax {
                 });
             });
 
-            request.on('error', (e) => {
+            request.on("error", (e) => {
                 reject(e.message);
             });
 
             request.end();
-
         });
-
     }
 
     /**
@@ -100,22 +98,22 @@ export class Ajax {
         return new Promise((resolve, reject) => {
 
             const options = {
-                method: 'PUT',
+                method: "PUT",
                 headers: {
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type' : 'application/json; charset=utf-8',
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json; charset=utf-8",
                 },
             };
 
             const request = https.request(url, options, (response) => {
 
-                let data = '';
+                let data = "";
 
-                response.on('data', (chunk) => {
+                response.on("data", (chunk) => {
                     data = data + chunk.toString();
                 });
 
-                response.on('end', () => {
+                response.on("end", () => {
                     try {
                         resolve(JSON.parse(data));
                     } catch (e) {
@@ -124,15 +122,13 @@ export class Ajax {
                 });
             });
 
-            request.on('error', (e) => {
+            request.on("error", (e) => {
                 reject(e.message);
             });
 
             request.write(JSON.stringify(obj));
             request.end();
-
         });
-
     }
 
     /**
@@ -144,56 +140,54 @@ export class Ajax {
         return new Promise((resolve, reject) => {
 
             const options = {
-                method: 'DELETE',
+                method: "DELETE",
                 headers: {
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type' : 'application/json; charset=utf-8',
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json; charset=utf-8",
                 },
             };
 
             const request = https.request(url, options, (response) => {
 
-                let data = '';
+                let data = "";
 
-                response.on('data', (chunk) => {
+                response.on("data", (chunk) => {
                     data = data + chunk.toString();
                 });
 
-                response.on('end', () => {
+                response.on("end", () => {
                     resolve(data);
                 });
             });
 
-            request.on('error', (e) => {
+            request.on("error", (e) => {
                 reject(e.message);
             });
 
             request.end();
-
         });
-
     }
 
-
     /**
-     * Helper functions to form-urlencoded an Object
+     * Helper functions to form-urlencode an Object
      */
 
-    private urlencodeObject(obj) {
+    urlencodeObject(obj) {
 
-        let encoded = '';
+        let encoded = "";
 
         for (const key in obj) {
             if (Object.prototype.hasOwnProperty.call(obj, key)) {
-                encoded += (encoded ? '&' : '') + this.encodeString(key) + '=' + this.encodeString(obj[key]);
+                encoded += (encoded ? "&" : "") + this.encodeString(key) + "=" + this.encodeString(obj[key]);
             }
         }
 
         return encoded;
     }
 
-    private encodeString(s) {
+    encodeString(s) {
         return encodeURIComponent(s).replace(/%20/g, '+');
     }
-
 }
+
+exports.Ajax = Ajax;
