@@ -1,51 +1,49 @@
-import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
-import { PLATFORM_NAME, PLUGIN_NAME, PLUGIN_VERSION } from './settings';
-import { TadoThermostat } from './accessories/thermostat';
-import { TadoClient } from './utils/tado';
+"use strict";
 
-/**
- * tado° platform
- */
+const PLATFORM_NAME = "tado";
+const PLUGIN_NAME = "homebridge-platform-tado";
 
-export class TadoPlatform implements DynamicPlatformPlugin {
-    public readonly Service: typeof Service = this.api.hap.Service;
-    public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
+const { TadoThermostat } = require("./accessories/thermostat");
+const { TadoClient } = require("./utils/tado");
 
-    public readonly accessories: PlatformAccessory[] = [];
+class TadoPlatform {
+    constructor(log, config, api) {
 
-    public tadoClient: TadoClient = new TadoClient(this);
-    private tadoZones: TadoThermostat[] = [];
+        this.log = log;
+        this.config = config;
+        this.api = api;
 
-    private lastZoneUpdate = 0;
-    private lastBatteryUpdate = 0;
+        this.Service = this.api.hap.Service;
+        this.Characteristic = this.api.hap.Characteristic;
 
-    private updateTimer!: NodeJS.Timeout;
+        this.accessories = [];
 
-    constructor(
-        public readonly log: Logger,
-        public readonly config: PlatformConfig,
-        public readonly api: API,
-    ) {
+        this.tadoClient = new TadoClient(this);
+
+        this.tadoZones = [];
+        this.lastZoneUpdate = 0;
+        this.lastBatteryUpdate = 0;
 
         if (!this.api || !this.config) {
             return;
         }
 
         if (!this.config.email || !this.config.password) {
-            this.log.error('No email or password given. Service stopped.');
+            this.log.error("No email or password given. Service stopped.");
             return;
         }
 
         this.tadoClient.setCredentials(this.config.email, this.config.password, this.config.homeId);
 
-        this.api.on('didFinishLaunching', () => {
-            this.log.debug('Searching new thermostats...');
+        this.api.on("didFinishLaunching", () => {
+            this.log.debug("Searching new thermostats...");
             this.discoverDevices();
         });
+
     }
 
-    configureAccessory(accessory: PlatformAccessory) {
-        this.log.debug('Loading thermostat from cache: %s', accessory.displayName);
+    configureAccessory(accessory) {
+        this.log.debug("Loading thermostat from cache: %s", accessory.displayName);
         this.accessories.push(accessory);
     }
 
@@ -55,26 +53,26 @@ export class TadoPlatform implements DynamicPlatformPlugin {
         let hasAutoAssist = false;
 
         // get home info and set temperatureUnit
-        await this.tadoClient.getHome().then((response: any) => {
-            temperatureUnit = response.temperatureUnit === 'CELSIUS' ? 0 : 1;
-            hasAutoAssist = response.skills && response.skills.includes('AUTO_ASSIST');
+        await this.tadoClient.getHome().then((response) => {
+            temperatureUnit = response.temperatureUnit === "CELSIUS" ? 0 : 1;
+            hasAutoAssist = response.skills && response.skills.includes("AUTO_ASSIST");
         }).catch(error => {
-            this.log.error('[API] %s', error);
+            this.log.error("[API] %s", error);
         });
 
-        this.tadoClient.getZones().then((zones: any) => {
+        this.tadoClient.getZones().then((zones) => {
 
-            const thermostats: any[] = [];
+            const thermostats = [];
 
             for (const zone of zones) {
 
                 // find thermostats
-                if (zone.type === 'HEATING') {
+                if (zone.type === "HEATING") {
 
                     // find zone leader
                     let zoneLeader = 0;
                     zone.devices.some((device, index) => {
-                        if (device.duties.includes('ZONE_LEADER')) {
+                        if (device.duties.includes("ZONE_LEADER")) {
                             zoneLeader = index;
                             return true;
                         }
@@ -92,7 +90,7 @@ export class TadoPlatform implements DynamicPlatformPlugin {
                             currentState : 0,
                             targetState  : 0,
                             currentTemp  : 0,
-                            targetTemp   : 0,
+                            targetTemp   : 5,
                             displayUnits : temperatureUnit,
                             humidity     : 0,
                             batteryState : zone.devices[zoneLeader].batteryState,
@@ -107,13 +105,13 @@ export class TadoPlatform implements DynamicPlatformPlugin {
                 const existingThermostat = this.accessories.find(accessory => accessory.UUID === thermostat.UUID);
 
                 if (existingThermostat) {
-                    this.log.debug('Restoring existing thermostat from cache: %s', existingThermostat.displayName);
+                    this.log.debug("Restoring existing thermostat from cache: %s", existingThermostat.displayName);
                     existingThermostat.context.device = thermostat.device;
                     this.api.updatePlatformAccessories([existingThermostat]);
                     this.tadoZones.push(new TadoThermostat(this, existingThermostat));
 
                 } else {
-                    this.log.info('Adding new thermostat: %s', thermostat.displayName);
+                    this.log.info("Adding new thermostat: %s", thermostat.displayName);
                     const accessory = new this.api.platformAccessory(thermostat.displayName, thermostat.UUID);
                     accessory.context.device = thermostat.device;
                     this.tadoZones.push(new TadoThermostat(this, accessory));
@@ -126,21 +124,23 @@ export class TadoPlatform implements DynamicPlatformPlugin {
                 return !thermostats.find(thermostat => thermostat.UUID === accessory.UUID);
             });
             if (unusedThermostats.length > 0) {
-                this.log.info('Removing unused thermostats from cache...');
+                this.log.info("Removing unused thermostats from cache...");
                 this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, unusedThermostats);
             }
 
             // ready and running
-            this.log.debug('Home ID: %s', this.tadoClient.homeId);
-            this.log.debug('Auto Assist %s', hasAutoAssist ? 'available' : 'not available');
-            this.log.debug('Version: %s', PLUGIN_VERSION);
-            this.log.info('Ready');
+            this.log.info("Ready");
+
+            if (!this.config.homeId) {
+                this.log.info("Home ID: %s", this.tadoClient.homeId);
+            }
+            this.log.debug("Auto Assist %s", hasAutoAssist ? "available" : "not available");
 
             // initial update
             this.forceUpdate(null);
 
         }).catch(error => {
-            this.log.error('[API] %s', error);
+            this.log.error("[API] %s", error);
         });
     }
 
@@ -150,11 +150,11 @@ export class TadoPlatform implements DynamicPlatformPlugin {
 
         const needsBatteryUpdate = this.lastBatteryUpdate+(12*60*60*1000) < Date.now(); // twice a day is enough
 
-        let devices: any[] = [];
+        let devices = [];
 
         if (needsBatteryUpdate) {
-            devices = <any[]> await this.tadoClient.getDevices().catch(error => {
-                this.log.error('[API] %s', error);
+            devices = await this.tadoClient.getDevices().catch(error => {
+                this.log.error("[API] %s", error);
             });
             this.lastBatteryUpdate = Date.now();
         }
@@ -166,17 +166,17 @@ export class TadoPlatform implements DynamicPlatformPlugin {
 
             if (needsBatteryUpdate && devices && devices.length) {
                 const device = devices.find(d => d.serialNo === thermostat.serialNo);
-                if (device && Object.prototype.hasOwnProperty.call(device, 'batteryState')) {
-                    this.log.debug('Daily battery update for %s: %s', accessory.displayName, device.batteryState);
+                if (device && Object.prototype.hasOwnProperty.call(device, "batteryState")) {
+                    this.log.debug("Daily battery update for %s: %s", accessory.displayName, device.batteryState);
                     tadoZone.updateBattery(device.batteryState);
                 }
             }
 
             if (zoneId === null || (zoneId === thermostat.zoneId)) {
-                await this.tadoClient.getZoneState(thermostat.zoneId).then((state: any) => {
+                await this.tadoClient.getZoneState(thermostat.zoneId).then((state) => {
                     tadoZone.update(state);
                 }).catch(error => {
-                    this.log.error('[API] %s', error);
+                    this.log.error("[API] %s", error);
                 });
             }
         }
@@ -202,12 +202,13 @@ export class TadoPlatform implements DynamicPlatformPlugin {
         await this.updateDevices(zoneId);
 
         // set update interval
-        const updateInterval = Math.max(15, (<number> this.config.updateInterval || 300));
+        const updateInterval = Math.max(15, (this.config.updateInterval || 300));
 
         this.updateTimer = setInterval(() => {
             this.updateDevices(null);
         }, updateInterval*1000);
-
     }
 
 }
+
+exports.TadoPlatform = TadoPlatform;
