@@ -146,8 +146,8 @@ class TadoThermostat {
     }
 
     getBatteryLevel(callback) {
-       const batteryLevel = this.accessory.context.device.batteryState === "NORMAL" ? 100 : 10;
-       callback(null, batteryLevel);
+        const batteryLevel = this.accessory.context.device.batteryState === "NORMAL" ? 100 : 10;
+        callback(null, batteryLevel);
     }
 
     //getChargingState(callback) {
@@ -253,21 +253,21 @@ class TadoThermostat {
         let terminationCondition = {};
 
         switch (defaultOverlay.terminationCondition.type) {
-            case "TIMER":
-                terminationCondition = {
-                    typeSkillBasedApp: "TIMER",
-                    durationInSeconds: defaultOverlay.terminationCondition.durationInSeconds,
-                };
-                break;
-            case "MANUAL":
-                terminationCondition = {
-                    typeSkillBasedApp: "MANUAL",
-                };
-                break;
-            default:
-                terminationCondition = {
-                    typeSkillBasedApp: "NEXT_TIME_BLOCK",
-                };
+        case "TIMER":
+            terminationCondition = {
+                typeSkillBasedApp: "TIMER",
+                durationInSeconds: defaultOverlay.terminationCondition.durationInSeconds,
+            };
+            break;
+        case "MANUAL":
+            terminationCondition = {
+                typeSkillBasedApp: "MANUAL",
+            };
+            break;
+        default:
+            terminationCondition = {
+                typeSkillBasedApp: "NEXT_TIME_BLOCK",
+            };
         }
 
         let overlay = null;

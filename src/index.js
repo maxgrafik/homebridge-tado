@@ -1,7 +1,7 @@
 "use strict";
 
-const { TadoPlatform } = require("./platform")
+const { TadoPlatform } = require("./platform");
 
 module.exports = function(homebridge) {
     homebridge.registerPlatform("tado", TadoPlatform);
-}
+};
