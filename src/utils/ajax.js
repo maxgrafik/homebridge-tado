@@ -186,7 +186,7 @@ class Ajax {
     }
 
     encodeString(s) {
-        return encodeURIComponent(s).replace(/%20/g, '+');
+        return encodeURIComponent(s).replace(/%20/g, "+");
     }
 }
 
