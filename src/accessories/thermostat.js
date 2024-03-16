@@ -6,6 +6,7 @@
  */
 
 class TadoThermostat {
+
     constructor(platform, accessory) {
 
         this.platform = platform;
@@ -118,7 +119,7 @@ class TadoThermostat {
     getCurrentTemperature(callback) {
         // getCurrentTemperature is triggered whenever opening the home app
         // we use this event to force an update for all thermostats
-        this.platform.forceUpdate(null);
+        this.platform.runUpdateLoop();
         callback(null, this.accessory.context.device.currentTemp);
     }
 
@@ -169,7 +170,7 @@ class TadoThermostat {
         const targetState = powered ? (this.hasOverlay ? 1 : 3) : 0;
 
         if (this.accessory.context.device.targetState !== targetState) {
-            this.log.info("%s is %s", this.accessory.displayName, ["off", "in Manual Mode", "wtf?", "in Automatic Mode"][targetState]);
+            this.log.info("%s is %s", this.accessory.displayName, ["off", "in Manual Mode", "... wtf?", "in Automatic Mode"][targetState]);
         }
 
         let currentTemp = state.sensorDataPoints.insideTemperature.celsius;
@@ -219,26 +220,26 @@ class TadoThermostat {
 
             if (state === 3 && this.hasOverlay) {
                 this.log.info("Setting %s to Automatic Mode...", this.accessory.displayName);
-                this.platform.tadoClient.deleteOverlay(this.accessory.context.device.zoneId).then(() => {
-                    this.platform.forceUpdate(this.accessory.context.device.zoneId);
-                }).catch(error => {
-                    this.platform.forceUpdate(this.accessory.context.device.zoneId);
-                    this.log.error("[API] %s", error);
-                });
+                try {
+                    this.platform.tadoClient.deleteOverlay(this.accessory.context.device.zoneId).then(() => {
+                        this.platform.update(this);
+                    });
+                } catch (error) {
+                    this.log.error(error.message || error);
+                }
 
             } else if (state < 2) {
-                this.platform.tadoClient.getZoneDefaultOverlay(this.accessory.context.device.zoneId).then((defaultOverlay) => {
-                    const overlay = this.createOverlay(defaultOverlay, state, temperature);
-                    this.log.info("Setting mode for %s...", this.accessory.displayName);
-                    this.platform.tadoClient.setOverlay(this.accessory.context.device.zoneId, overlay).then(() => {
-                        this.platform.forceUpdate(this.accessory.context.device.zoneId);
-                    }).catch(error => {
-                        this.platform.forceUpdate(this.accessory.context.device.zoneId);
-                        this.log.error("[API] %s", error);
+                this.log.info("Setting mode for %s...", this.accessory.displayName);
+                try {
+                    this.platform.tadoClient.getZoneDefaultOverlay(this.accessory.context.device.zoneId).then((defaultOverlay) => {
+                        const overlay = this.createOverlay(defaultOverlay, state, temperature);
+                        this.platform.tadoClient.setOverlay(this.accessory.context.device.zoneId, overlay).then(() => {
+                            this.platform.update(this);
+                        });
                     });
-                }).catch(error => {
-                    this.log.error("[API] %s", error);
-                });
+                } catch (error) {
+                    this.log.error(error.message || error);
+                }
 
             } else if (state === 2) {
                 // ignore Characteristic.TargetHeatingCoolingState.COOL

@@ -7,9 +7,11 @@ const { Ajax } = require("./ajax");
  */
 
 class TadoClient {
-    constructor(platform) {
 
-        this.platform = platform;
+    constructor(log, config) {
+
+        this.log = log;
+        this.config = config;
 
         this.username = "";
         this.password = "";
@@ -27,334 +29,228 @@ class TadoClient {
         this.homeId = homeId;
     }
 
-    connect() {
-        return new Promise((resolve, reject) => {
+    async connect() {
 
-            let refresh = false;
+        let refresh = false;
 
-            if (this.accessToken) {
+        if (this.accessToken) {
 
-                const leeway = 10000;
-                const isTokenValid = (Date.now() + leeway) < this.expires;
+            const leeway = 10000;
+            const isTokenValid = (Date.now() + leeway) < this.expires;
 
-                if (isTokenValid) {
-                    resolve(true);
-                    return;
-                } else {
-                    refresh = true;
-                }
+            if (isTokenValid) {
+                return;
             }
 
-            this.getAccessToken(refresh).then((response) => {
+            refresh = true;
+        }
 
-                this.accessToken = response.access_token;
-                this.refreshToken = response.refresh_token;
-                this.expires = Date.now() + (response.expires_in * 1000);
+        try {
+            const response = await this.getAccessToken(refresh);
 
-                if (this.homeId) {
-                    resolve(true);
-                } else {
-                    this.getHomeId().then((response) => {
-                        this.homeId = response;
-                        resolve(true);
-                    }).catch(error => {
-                        reject(error);
-                    });
-                }
+            this.accessToken = response.access_token;
+            this.refreshToken = response.refresh_token;
+            this.expires = Date.now() + (response.expires_in * 1000);
 
-            }).catch((error) => {
-                this.reset();
-                reject(error);
-            });
-        });
-    }
-
-    getAccessToken(refresh) {
-        return new Promise((resolve, reject) => {
-
-            let credentials = {};
-
-            if (refresh) {
-                credentials = {
-                    client_id: "tado-web-app",
-                    grant_type: "refresh_token",
-                    refresh_token: this.refreshToken,
-                    scope: "home.user",
-                    client_secret: "wZaRN7rpjn3FoNyF5IFuxg9uMzYJcvOoQ8QWiIqS3hfk6gLhVlG57j5YNoZL2Rtc",
-                };
-            } else {
-                credentials = {
-                    client_id: "tado-web-app",
-                    grant_type: "password",
-                    username: this.username,
-                    password: this.password,
-                    scope: "home.user",
-                    client_secret: "wZaRN7rpjn3FoNyF5IFuxg9uMzYJcvOoQ8QWiIqS3hfk6gLhVlG57j5YNoZL2Rtc",
-                };
+            if (!this.homeId) {
+                this.homeId = await this.getHomeId();
             }
 
-            this.ajax.post("https://auth.tado.com/oauth/token", credentials).then((response) => {
-
-                if (this.platform.config.analytics === true) {
-                    this.platform.log.debug("[Analytics] Login/Refresh: %s", JSON.stringify(response, null, 2));
-                }
-
-                const status = this.getErrors(response, "access_token");
-
-                if (status !== true) {
-                    reject(status);
-                } else {
-                    resolve(response);
-                }
-
-            }).catch(error => {
-                reject(error);
-            });
-        });
+        } catch (error) {
+            this.reset();
+            throw error;
+        }
     }
 
-    getHomeId() {
-        return new Promise((resolve, reject) => {
+    async getAccessToken(refresh) {
 
-            this.ajax.get("https://my.tado.com/api/v2/me", this.accessToken).then((response) => {
+        let credentials = {};
 
-                if (this.platform.config.analytics === true) {
-                    this.platform.log.debug("[Analytics] User Info: %s", JSON.stringify(response, null, 2));
-                }
+        if (refresh) {
+            credentials = {
+                client_id: "tado-web-app",
+                grant_type: "refresh_token",
+                refresh_token: this.refreshToken,
+                scope: "home.user",
+                client_secret: "wZaRN7rpjn3FoNyF5IFuxg9uMzYJcvOoQ8QWiIqS3hfk6gLhVlG57j5YNoZL2Rtc",
+            };
+        } else {
+            credentials = {
+                client_id: "tado-web-app",
+                grant_type: "password",
+                username: this.username,
+                password: this.password,
+                scope: "home.user",
+                client_secret: "wZaRN7rpjn3FoNyF5IFuxg9uMzYJcvOoQ8QWiIqS3hfk6gLhVlG57j5YNoZL2Rtc",
+            };
+        }
 
-                const status = this.getErrors(response, "homes");
+        const response = await this.ajax.post("https://auth.tado.com/oauth/token", credentials);
 
-                if (status !== true) {
-                    reject(status);
-                } else {
-                    const homes = response.homes;
-                    if (homes.length === 0) {
-                        reject("No homes found");
-                    } else if (homes.length === 1) {
-                        resolve(homes[0].id.toString());
-                    } else {
-                        let listOfHomes = "";
-                        for (const home of homes) {
-                            listOfHomes += (listOfHomes ? ", " : "") + "'" + home.name + "'" + " (id: " + home.id + ")";
-                        }
-                        reject("Found multiple homes: " + listOfHomes + ". Please set Home ID in config.");
-                    }
-                }
+        if (this.config.analytics === true) {
+            this.log.debug("[Analytics] Login/Refresh: %s", JSON.stringify(response, null, 2));
+        }
 
-            }).catch(error => {
-                reject(error);
-            });
-        });
+        this.getErrors(response, "access_token");
+
+        return response;
+    }
+
+    async getHomeId() {
+
+        const response = await this.ajax.get("https://my.tado.com/api/v2/me", this.accessToken);
+
+        if (this.config.analytics === true) {
+            this.log.debug("[Analytics] User Info: %s", JSON.stringify(response, null, 2));
+        }
+
+        this.getErrors(response, "homes");
+
+        const homes = response.homes;
+
+        if (homes.length === 1) {
+            return homes[0].id.toString();
+        }
+
+        if (homes.length === 0) {
+            throw new Error("No homes found");
+        } else {
+            let listOfHomes = "";
+            for (const home of homes) {
+                listOfHomes += (listOfHomes !== "" ? ", " : "") + "'" + home.name + "'" + " (id: " + home.id + ")";
+            }
+            throw new Error("Found multiple homes: " + listOfHomes + ". Please set Home ID in config.");
+        }
     }
 
     async getHome() {
 
-        await this.connect().catch(error => {
-            throw Error(error);
-        });
+        await this.connect();
 
-        return new Promise((resolve, reject) => {
-            this.ajax.get("https://my.tado.com/api/v2/homes/" + this.homeId, this.accessToken).then((response) => {
+        const response = await this.ajax.get("https://my.tado.com/api/v2/homes/" + this.homeId, this.accessToken);
 
-                if (this.platform.config.analytics === true) {
-                    this.platform.log.debug("[Analytics] Home Info: %s", JSON.stringify(response, null, 2));
-                }
+        if (this.config.analytics === true) {
+            this.log.debug("[Analytics] Home Info: %s", JSON.stringify(response, null, 2));
+        }
 
-                const status = this.getErrors(response, null);
+        this.getErrors(response, null);
 
-                if (status !== true) {
-                    reject(status);
-                } else {
-                    resolve(response);
-                }
-
-            }).catch(error => {
-                reject(error);
-            });
-        });
+        return response;
     }
 
     async getZones() {
 
-        await this.connect().catch(error => {
-            throw Error(error);
-        });
+        await this.connect();
 
-        return new Promise((resolve, reject) => {
-            this.ajax.get("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones", this.accessToken).then((response) => {
+        const response = await this.ajax.get("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones", this.accessToken);
 
-                if (this.platform.config.analytics === true) {
-                    this.platform.log.debug("[Analytics] Zones: %s", JSON.stringify(response, null, 2));
-                }
+        if (this.config.analytics === true) {
+            this.log.debug("[Analytics] Zones: %s", JSON.stringify(response, null, 2));
+        }
 
-                const status = this.getErrors(response, null);
+        this.getErrors(response, null);
 
-                if (status !== true) {
-                    reject(status);
-                } else {
-                    resolve(response);
-                }
-
-            }).catch(error => {
-                reject(error);
-            });
-        });
+        return response;
     }
 
     async getZoneState(zoneId) {
 
-        await this.connect().catch(error => {
-            throw Error(error);
-        });
+        await this.connect();
 
-        return new Promise((resolve, reject) => {
-            this.ajax.get("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones/" + zoneId + "/state", this.accessToken).then((response) => {
+        const response = await this.ajax.get("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones/" + zoneId + "/state", this.accessToken);
 
-                if (this.platform.config.analytics === true) {
-                    this.platform.log.debug("[Analytics] Zone State: %s", JSON.stringify(response, null, 2));
-                }
+        if (this.config.analytics === true) {
+            this.log.debug("[Analytics] Zone State: %s", JSON.stringify(response, null, 2));
+        }
 
-                const status = this.getErrors(response, null);
+        this.getErrors(response, null);
 
-                if (status !== true) {
-                    reject(status);
-                } else {
-                    resolve(response);
-                }
-
-            }).catch(error => {
-                reject(error);
-            });
-        });
+        return response;
     }
 
     async getZoneDefaultOverlay(zoneId) {
 
-        await this.connect().catch(error => {
-            throw Error(error);
-        });
+        await this.connect();
 
-        return new Promise((resolve, reject) => {
-            this.ajax.get("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones/" + zoneId + "/defaultOverlay", this.accessToken).then((response) => {
+        const response = await this.ajax.get("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones/" + zoneId + "/defaultOverlay", this.accessToken);
 
-                if (this.platform.config.analytics === true) {
-                    this.platform.log.debug("[Analytics] Zone Default Overlay: %s", JSON.stringify(response, null, 2));
-                }
+        if (this.config.analytics === true) {
+            this.log.debug("[Analytics] Zone Default Overlay: %s", JSON.stringify(response, null, 2));
+        }
 
-                const status = this.getErrors(response, null);
+        this.getErrors(response, null);
 
-                if (status !== true) {
-                    reject(status);
-                } else {
-                    resolve(response);
-                }
-
-            }).catch(error => {
-                reject(error);
-            });
-        });
+        return response;
     }
 
     async getDevices() {
 
-        await this.connect().catch(error => {
-            throw Error(error);
-        });
+        await this.connect();
 
-        return new Promise((resolve, reject) => {
-            this.ajax.get("https://my.tado.com/api/v2/homes/" + this.homeId + "/devices", this.accessToken).then((response) => {
+        const response = await this.ajax.get("https://my.tado.com/api/v2/homes/" + this.homeId + "/devices", this.accessToken);
 
-                if (this.platform.config.analytics === true) {
-                    this.platform.log.debug("[Analytics] Devices: %s", JSON.stringify(response, null, 2));
-                }
+        if (this.config.analytics === true) {
+            this.log.debug("[Analytics] Devices: %s", JSON.stringify(response, null, 2));
+        }
 
-                const status = this.getErrors(response, null);
+        this.getErrors(response, null);
 
-                if (status !== true) {
-                    reject(status);
-                } else {
-                    resolve(response);
-                }
-
-            }).catch(error => {
-                reject(error);
-            });
-        });
+        return response;
     }
 
     async setOverlay(zoneId, overlay) {
 
-        await this.connect().catch(error => {
-            throw Error(error);
-        });
+        await this.connect();
 
-        return new Promise((resolve, reject) => {
+        if (this.config.analytics === true) {
+            this.log.debug("[Analytics] Setting Overlay: %s", JSON.stringify(overlay, null, 2));
+        }
 
-            if (this.platform.config.analytics === true) {
-                this.platform.log.debug("[Analytics] Setting Overlay: %s", JSON.stringify(overlay, null, 2));
-            }
+        const response = await this.ajax.put("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones/" + zoneId + "/overlay", this.accessToken, overlay);
 
-            this.ajax.put("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones/" + zoneId + "/overlay", this.accessToken, overlay).then((response) => {
+        if (this.config.analytics === true) {
+            this.log.debug("[Analytics] Set Overlay Response: %s", JSON.stringify(response, null, 2));
+        }
 
-                if (this.platform.config.analytics === true) {
-                    this.platform.log.debug("[Analytics] Set Overlay Response: %s", JSON.stringify(response, null, 2));
-                }
+        this.getErrors(response, null);
 
-                const status = this.getErrors(response, null);
-
-                if (status !== true) {
-                    reject(status);
-                } else {
-                    resolve(response);
-                }
-
-            }).catch(error => {
-                reject(error);
-            });
-        });
+        return response;
     }
 
     async deleteOverlay(zoneId) {
 
-        await this.connect().catch(error => {
-            throw Error(error);
-        });
+        await this.connect();
 
-        return new Promise((resolve, reject) => {
+        if (this.config.analytics === true) {
+            this.log.debug("[Analytics] Deleting Overlay...");
+        }
 
-            if (this.platform.config.analytics === true) {
-                this.platform.log.debug("[Analytics] Deleting Overlay...");
-            }
+        const response = await this.ajax.delete("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones/" + zoneId + "/overlay", this.accessToken);
 
-            this.ajax.delete("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones/" + zoneId + "/overlay", this.accessToken).then((response) => {
+        // not sure whether we ever get a response here
+        if (this.config.analytics === true) {
+            this.log.debug("[Analytics] Delete Overlay Response: %s", response);
+        }
 
-                // not sure whether we ever get a response here
-                if (this.platform.config.analytics === true) {
-                    this.platform.log.debug("[Analytics] Delete Overlay Response: %s", response);
-                }
-
-                resolve(response);
-
-            }).catch(error => {
-                reject(error);
-            });
-        });
+        return response;
     }
 
     getErrors(response, reqField) {
-        if (!response) {
-            return "Response contains no data: " + response;
+        if (Object.prototype.hasOwnProperty.call(response, "error")) {
+            if (Object.prototype.hasOwnProperty.call(response, "data")) {
+                this.log.error(response.data);
+            }
+            throw new Error("[API] " + (response.error.message || response.error));
         }
         if (Object.prototype.hasOwnProperty.call(response, "errors")) {
-            return response.errors[0].title;
+            throw new Error("[API] " + response.errors[0].title);
         }
         if (Object.prototype.hasOwnProperty.call(response, "error_description")) {
-            return response.error_description;
+            throw new Error("[API] " + response.error_description);
         }
         if (reqField && !Object.prototype.hasOwnProperty.call(response, reqField)) {
-            return "No " + reqField + " found";
+            throw new Error("[API] Response does not contain " + reqField);
         }
-        return true;
     }
 
     reset() {

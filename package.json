@@ -2,7 +2,7 @@
   "private": true,
   "displayName": "tado°",
   "name": "homebridge-platform-tado",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "tado° thermostat plugin for homebridge",
   "main": "src/index.js",
   "license": "MIT",
