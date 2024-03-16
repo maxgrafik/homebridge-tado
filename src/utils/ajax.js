@@ -14,7 +14,6 @@ class Ajax {
      */
 
     post(url, data) {
-
         return new Promise((resolve, reject) => {
 
             const options = {
@@ -35,14 +34,14 @@ class Ajax {
                 response.on("end", () => {
                     try {
                         resolve(JSON.parse(data));
-                    } catch (e) {
-                        resolve(null);
+                    } catch (error) {
+                        resolve({error: error, data: data});
                     }
                 });
             });
 
-            request.on("error", (e) => {
-                reject(e.message);
+            request.on("error", (error) => {
+                reject(error);
             });
 
             request.write(this.urlencodeObject(data));
@@ -55,7 +54,6 @@ class Ajax {
      */
 
     get(url, token) {
-
         return new Promise((resolve, reject) => {
 
             const options = {
@@ -75,14 +73,14 @@ class Ajax {
                 response.on("end", () => {
                     try {
                         resolve(JSON.parse(data));
-                    } catch (e) {
-                        resolve(null);
+                    } catch (error) {
+                        resolve({error: error, data: data});
                     }
                 });
             });
 
-            request.on("error", (e) => {
-                reject(e.message);
+            request.on("error", (error) => {
+                reject(error);
             });
 
             request.end();
@@ -94,7 +92,6 @@ class Ajax {
      */
 
     put(url, token, obj) {
-
         return new Promise((resolve, reject) => {
 
             const options = {
@@ -116,14 +113,14 @@ class Ajax {
                 response.on("end", () => {
                     try {
                         resolve(JSON.parse(data));
-                    } catch (e) {
-                        resolve(null);
+                    } catch (error) {
+                        resolve({error: error, data: data});
                     }
                 });
             });
 
-            request.on("error", (e) => {
-                reject(e.message);
+            request.on("error", (error) => {
+                reject(error);
             });
 
             request.write(JSON.stringify(obj));
@@ -136,7 +133,6 @@ class Ajax {
      */
 
     delete(url, token) {
-
         return new Promise((resolve, reject) => {
 
             const options = {
@@ -160,8 +156,8 @@ class Ajax {
                 });
             });
 
-            request.on("error", (e) => {
-                reject(e.message);
+            request.on("error", (error) => {
+                reject(error);
             });
 
             request.end();
