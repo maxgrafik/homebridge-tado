@@ -23,6 +23,12 @@
         "placeholder": "12345",
         "description": "Leave blank for auto discovery"
       },
+      "useNewAPI": {
+        "title": "Use new API calls",
+        "type": "boolean",
+        "default": true,
+        "description": "Disable to use the old method of getting zone state updates (more requests to tado server)."
+      },
       "analytics": {
         "title": "Enable Analytics",
         "type": "boolean",
@@ -47,6 +53,7 @@
       "expandable": true,
       "title": "Troubleshooting",
       "items": [
+        "useNewAPI",
         "analytics",
         "updateInterval"
       ]

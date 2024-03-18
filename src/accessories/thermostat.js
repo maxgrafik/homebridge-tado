@@ -160,7 +160,7 @@ class TadoThermostat {
         callback(null, batteryState);
     }
 
-    update(state) {
+    updateState(state) {
 
         this.hasOverlay = state.overlayType !== null;
 
@@ -198,6 +198,12 @@ class TadoThermostat {
     }
 
     updateBattery(state) {
+
+        // skip unnecessary updates
+        if (state === this.accessory.context.device.batteryState) {
+            return;
+        }
+
         const batteryLevel = state === "NORMAL" ? 100 : 10;
         const batteryState = state === "NORMAL" ? 0 : 1;
 
@@ -208,6 +214,22 @@ class TadoThermostat {
         // push updates to homekit
         this.batteryService.updateCharacteristic(this.platform.Characteristic.BatteryLevel, batteryLevel);
         this.batteryService.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, batteryState);
+    }
+
+    updateAccessoryInfo(fwVersion) {
+
+        // skip unnecessary updates
+        if (fwVersion === this.accessory.context.device.FwVersion) {
+            return;
+        }
+
+        this.accessory.context.device.FwVersion = fwVersion;
+
+        this.api.updatePlatformAccessories([this.accessory]);
+
+        // push updates to homekit
+        this.accessory.getService(this.platform.Service.AccessoryInformation)
+            .updateCharacteristic(this.platform.Characteristic.FirmwareRevision, fwVersion);
     }
 
     setOverlay(state, temperature) {
@@ -222,9 +244,10 @@ class TadoThermostat {
                 this.log.info("Setting %s to Automatic Mode...", this.accessory.displayName);
                 try {
                     this.platform.tadoClient.deleteOverlay(this.accessory.context.device.zoneId).then(() => {
-                        this.platform.update(this);
+                        this.platform.updateZone(this);
                     });
                 } catch (error) {
+                    this.platform.lastError = Date.now();
                     this.log.error(error.message || error);
                 }
 
@@ -234,10 +257,11 @@ class TadoThermostat {
                     this.platform.tadoClient.getZoneDefaultOverlay(this.accessory.context.device.zoneId).then((defaultOverlay) => {
                         const overlay = this.createOverlay(defaultOverlay, state, temperature);
                         this.platform.tadoClient.setOverlay(this.accessory.context.device.zoneId, overlay).then(() => {
-                            this.platform.update(this);
+                            this.platform.updateZone(this);
                         });
                     });
                 } catch (error) {
+                    this.platform.lastError = Date.now();
                     this.log.error(error.message || error);
                 }
 

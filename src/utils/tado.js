@@ -138,6 +138,42 @@ class TadoClient {
         return response;
     }
 
+    async getState() {
+
+        await this.connect();
+
+        const response = await this.ajax.get("https://my.tado.com/api/v2/homes/" + this.homeId + "/state", this.accessToken);
+
+        if (this.config.analytics === true) {
+            this.log.debug("[Analytics] Home State: %s", JSON.stringify(response, null, 2));
+        }
+
+        this.getErrors(response, null);
+
+        return response;
+    }
+
+    async setState(atHome) {
+
+        const homeState = {
+            homePresence: (atHome === true ? "HOME" : "AWAY")
+        };
+
+        await this.connect();
+
+        if (this.config.analytics === true) {
+            this.log.debug("[Analytics] Setting Home State: %s", JSON.stringify(homeState, null, 2));
+        }
+
+        const response = await this.ajax.put("https://my.tado.com/api/v2/homes/" + this.homeId + "/presenceLock", this.accessToken, homeState);
+
+        if (this.config.analytics === true) {
+            this.log.debug("[Analytics] Set Home State Response: %s", JSON.stringify(response, null, 2));
+        }
+
+        return response;
+    }
+
     async getZones() {
 
         await this.connect();
@@ -146,6 +182,21 @@ class TadoClient {
 
         if (this.config.analytics === true) {
             this.log.debug("[Analytics] Zones: %s", JSON.stringify(response, null, 2));
+        }
+
+        this.getErrors(response, null);
+
+        return response;
+    }
+
+    async getZoneStates() { // New API call: aggregated zone states
+
+        await this.connect();
+
+        const response = await this.ajax.get("https://my.tado.com/api/v2/homes/" + this.homeId + "/zoneStates", this.accessToken);
+
+        if (this.config.analytics === true) {
+            this.log.debug("[Analytics] Zone States: %s", JSON.stringify(response, null, 2));
         }
 
         this.getErrors(response, null);
