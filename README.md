@@ -41,14 +41,6 @@ Option | Description | Default
 
 This plugin updates the thermostat state whenever needed, e.g. when opening Apple's Home app. In addition it updates the state in the background every 300 seconds (5 minutes), which is likely enough. You may change this timespan by setting *updateInterval* in config, but I think there's no need to hit the tado° servers every 5 seconds.
 
-## Installation
-
-If you want to give it a try, you can install the plugin from GitHub:
-
-```
-sudo npm install -g --unsafe-perm git+https://github.com/maxgrafik/homebridge-platform-tado.git
-```
-
 ## Notes
 
 Although the tado° API offers a lot of things like **weather**, **presence** and **open window detection**, I'd like to keep this plugin as simple as possible. So I may not implement features that can be achieved either through HomeKit automations, shortcuts or with the help of other Homebridge plugins.

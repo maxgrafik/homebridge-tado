@@ -289,7 +289,7 @@ class TadoClient {
     getErrors(response, reqField) {
         if (Object.prototype.hasOwnProperty.call(response, "error")) {
             if (Object.prototype.hasOwnProperty.call(response, "data")) {
-                this.log.error(response.data);
+                this.log.debug("[Data] " + response.data);
             }
             throw new Error("[API] " + (response.error.message || response.error));
         }
