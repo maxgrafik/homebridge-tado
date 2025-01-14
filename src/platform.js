@@ -1,7 +1,7 @@
 "use strict";
 
 const PLATFORM_NAME = "tado";
-const PLUGIN_NAME = "homebridge-platform-tado";
+const PLUGIN_NAME = "homebridge-tado";
 
 const { TadoThermostat } = require("./accessories/thermostat");
 const { TadoClient } = require("./utils/tado");

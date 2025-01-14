@@ -1,6 +1,6 @@
-[![GitHub package.json version](https://img.shields.io/github/package-json/v/maxgrafik/homebridge-platform-tado)](https://github.com/maxgrafik/homebridge-platform-tado)
+[![GitHub package.json version](https://img.shields.io/github/package-json/v/maxgrafik/homebridge-tado)](https://github.com/maxgrafik/homebridge-tado)
 
-# homebridge-platform-tado
+# homebridge-tado
 
 [Homebridge](https://github.com/homebridge/homebridge) plugin for tado° thermostats. Based on the work of [Terence Eden](https://shkspr.mobi/blog/2019/02/tado-api-guide-updated-for-2019/).
 
