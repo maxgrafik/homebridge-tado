@@ -1,12 +1,17 @@
+<span align="center">
+
+<img src="./branding/app-icon.png" vspace="12px"><br>
+
+# tado° for Homebridge
+
 [![GitHub package.json version](https://img.shields.io/github/package-json/v/maxgrafik/homebridge-tado)](https://github.com/maxgrafik/homebridge-tado)
 
-# homebridge-tado
-
-[Homebridge](https://github.com/homebridge/homebridge) plugin for tado° thermostats. Based on the work of [Terence Eden](https://shkspr.mobi/blog/2019/02/tado-api-guide-updated-for-2019/).
+</span>
 
 ## Description
 
-This plugin exposes tado° thermostats to Apple HomeKit. If you already own the HomeKit compatible tado° bridge, this plugin might not be for you.
+This [Homebridge](https://github.com/homebridge/homebridge) plugin exposes tado° thermostats to Apple HomeKit. If you already own the HomeKit compatible tado° bridge, this plugin might not be for you. Based on the work of [Terence Eden](https://shkspr.mobi/blog/2019/02/tado-api-guide-updated-for-2019/).
+
 
 ## Configuration
 
