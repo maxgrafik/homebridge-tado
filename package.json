@@ -19,7 +19,8 @@
   },
   "keywords": [
     "homebridge-plugin",
-    "tado"
+    "tado",
+    "thermostat"
   ],
   "dependencies": {},
   "devDependencies": {}

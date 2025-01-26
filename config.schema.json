@@ -1,62 +1,103 @@
 {
-  "pluginAlias": "tado",
-  "pluginType": "platform",
-  "singular": true,
-  "headerDisplay": "Your tado° credentials",
-  "schema": {
-    "type": "object",
-    "properties": {
-      "email": {
-        "title": "Email",
-        "type": "string",
-        "required": true,
-        "format": "email"
-      },
-      "password": {
-        "title": "Password",
-        "type": "string",
-        "required": true
-      },
-      "homeId": {
-        "title": "Home ID",
-        "type": "string",
-        "placeholder": "12345",
-        "description": "Leave blank for auto discovery"
-      },
-      "useNewAPI": {
-        "title": "Use new API calls",
-        "type": "boolean",
-        "default": true,
-        "description": "Disable to use the old method of getting zone state updates (more requests to tado server)."
-      },
-      "analytics": {
-        "title": "Enable Analytics",
-        "type": "boolean",
-        "default": false,
-        "description": "This logs the whole communication with the tado° servers to the console. This may expose sensitive information. Use with caution and at your own risk."
-      },
-      "updateInterval": {
-        "title": "Update interval (in seconds)",
-        "type": "integer",
-        "minimum": 15,
-        "maximum": 3600,
-        "default": 300
-      }
-    }
-  },
-  "form": [
-    "email",
-    "password",
-    "homeId",
-    {
-      "type": "fieldset",
-      "expandable": true,
-      "title": "Troubleshooting",
-      "items": [
-        "useNewAPI",
-        "analytics",
-        "updateInterval"
-      ]
-    }
-  ]
+    "pluginAlias": "tado",
+    "pluginType": "platform",
+    "singular": true,
+    "headerDisplay": "tado° for Homebridge Setup",
+    "schema": {
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string",
+                "title": "tado",
+                "default": "tado"
+            },
+            "email": {
+                "type": "string",
+                "title": "Email",
+                "notitle": true,
+                "description": "Your tado° email",
+                "required": true,
+                "format": "email"
+            },
+            "password": {
+                "type": "string",
+                "title": "Password",
+                "notitle": true,
+                "description": "Your tado° password",
+                "required": true
+            },
+            "homeId": {
+                "type": "string",
+                "title": "Home ID",
+                "description": "Leave blank for auto discovery",
+                "placeholder": "12345"
+            },
+            "useNewAPI": {
+                "type": "boolean",
+                "title": "Use new API calls",
+                "description": "Disable to use the old method of getting zone state updates (more requests to tado server).",
+                "default": true
+            },
+            "analytics": {
+                "type": "boolean",
+                "title": "Enable Analytics",
+                "description": "This logs the whole communication with the tado° servers to the console. This may expose sensitive information. Use with caution and at your own risk.",
+                "default": false
+            },
+            "updateInterval": {
+                "type": "number",
+                "title": "Zone state updates",
+                "description": "Update every n seconds",
+                "placeholder": 300,
+                "minimum": 15,
+                "maximum": 3600,
+                "default": 300
+            }
+        }
+    },
+    "form": [
+        {
+            "type": "fieldset",
+            "title": "Login",
+            "expandable": false,
+            "items": [
+                {
+                    "type": "flex",
+                    "flex-flow": "row wrap",
+                    "items": [
+                        "email",
+                        "password"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "fieldset",
+            "title": "Your home",
+            "description": "Set your tado° home ID and adjust the update interval",
+            "expandable": true,
+            "expanded": false,
+            "items": [
+                {
+                    "type": "flex",
+                    "flex-flow": "row wrap",
+                    "items": [
+                        "homeId",
+                        "updateInterval"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "fieldset",
+            "title": "Troubleshooting",
+            "description": "In case things don’t go as expected",
+            "expandable": true,
+            "expanded": false,
+            "items": [
+                "useNewAPI",
+                "analytics"
+            ]
+        }
+    ]
 }
