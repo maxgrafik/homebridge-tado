@@ -1,30 +1,35 @@
-<span align="center">
+<p align="center">
+    <img src="./branding/app-icon.png">
+</p>
 
-<img src="./branding/app-icon.png" vspace="12px"><br>
+<span align="center">
 
 # tado° for Homebridge
 
-[![GitHub package.json version](https://img.shields.io/github/package-json/v/maxgrafik/homebridge-tado)](https://github.com/maxgrafik/homebridge-tado)
+![Version](https://img.shields.io/github/package-json/v/maxgrafik/homebridge-tado)
+![Homebridge support](https://img.shields.io/badge/Homebridge-1.8.0_%7C_2.0.0--beta-blue)
 
 </span>
 
+
 ## Description
 
-This [Homebridge](https://github.com/homebridge/homebridge) plugin exposes tado° thermostats to Apple HomeKit. If you already own the HomeKit compatible tado° bridge, this plugin might not be for you. Based on the work of [Terence Eden](https://shkspr.mobi/blog/2019/02/tado-api-guide-updated-for-2019/).
+This [Homebridge](https://homebridge.io) plugin exposes tado° thermostats to Apple HomeKit. If you already own the HomeKit compatible tado° bridge, this plugin might not be for you. Based on the work of [Terence Eden](https://shkspr.mobi/blog/2019/02/tado-api-guide-updated-for-2019/).
 
 
 ## Configuration
 
-I recommend using Homebridge UI to configure the plugin
+I recommend using [Homebridge UI](https://github.com/homebridge/homebridge-config-ui-x) to configure the plugin
 
 ```
 "platforms": [
     ...
     {
         "platform": "tado",
-        "email": "your_tado_email",
-        "password": "your_tado_password",
-        "homeId": "your_home_id",
+        "name": "tado",
+        "email": <your_tado_email>,
+        "password": <your_tado_password>,
+        "homeId": <your_home_id>,
         "useNewAPI": true,
         "analytics": false,
         "updateInterval": 300
