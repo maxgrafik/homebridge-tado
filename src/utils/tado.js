@@ -1,11 +1,15 @@
-"use strict";
+/**
+ * tado.js
+ * homebridge-tado
+ *
+ * @copyright 2021 Hendrik Meinl
+ */
 
-const { Ajax } = require("./ajax");
+"use strict";
 
 /**
  * tado° web client
  */
-
 class TadoClient {
 
     constructor(log, config) {
@@ -13,20 +17,13 @@ class TadoClient {
         this.log = log;
         this.config = config;
 
-        this.username = "";
-        this.password = "";
-        this.homeId = "";
+        this.username = config.email;
+        this.password = config.password;
+        this.homeId = config.homeId;
+
         this.accessToken = "";
         this.refreshToken = "";
         this.expires = 0;
-
-        this.ajax = new Ajax();
-    }
-
-    setCredentials(username, password, homeId) {
-        this.username = username;
-        this.password = password;
-        this.homeId = homeId;
     }
 
     async connect() {
@@ -85,41 +82,42 @@ class TadoClient {
             };
         }
 
-        const response = await this.ajax.post("https://auth.tado.com/oauth/token", credentials);
+        const response = await this.httpLogin("https://auth.tado.com/oauth/token", credentials);
 
         if (this.config.analytics === true) {
             this.log.debug("[Analytics] Login/Refresh: %s", JSON.stringify(response, null, 2));
         }
 
-        this.getErrors(response, "access_token");
+        if (!Object.hasOwn(response, "access_token")) {
+            throw new Error("[API] Response does not contain access token");
+        }
 
         return response;
     }
 
     async getHomeId() {
 
-        const response = await this.ajax.get("https://my.tado.com/api/v2/me", this.accessToken);
+        const response = await this.httpGet("https://my.tado.com/api/v2/me");
 
         if (this.config.analytics === true) {
             this.log.debug("[Analytics] User Info: %s", JSON.stringify(response, null, 2));
         }
 
-        this.getErrors(response, "homes");
+        if (!Object.hasOwn(response, "homes")) {
+            throw new Error("[API] Response does not contain list of homes");
+        }
 
         const homes = response.homes;
 
         if (homes.length === 1) {
-            return homes[0].id.toString();
+            return `${homes[0].id}`;
         }
 
         if (homes.length === 0) {
             throw new Error("No homes found");
         } else {
-            let listOfHomes = "";
-            for (const home of homes) {
-                listOfHomes += (listOfHomes !== "" ? ", " : "") + "'" + home.name + "'" + " (id: " + home.id + ")";
-            }
-            throw new Error("Found multiple homes: " + listOfHomes + ". Please set Home ID in config.");
+            const homesList = homes.map((home) => `${home.name} (ID: ${home.id})`).join(", ");
+            throw new Error(`Found multiple homes: ${homesList}. Please set Home ID in config.`);
         }
     }
 
@@ -127,13 +125,11 @@ class TadoClient {
 
         await this.connect();
 
-        const response = await this.ajax.get("https://my.tado.com/api/v2/homes/" + this.homeId, this.accessToken);
+        const response = await this.httpGet("https://my.tado.com/api/v2/homes/" + this.homeId);
 
         if (this.config.analytics === true) {
             this.log.debug("[Analytics] Home Info: %s", JSON.stringify(response, null, 2));
         }
-
-        this.getErrors(response, null);
 
         return response;
     }
@@ -142,13 +138,11 @@ class TadoClient {
 
         await this.connect();
 
-        const response = await this.ajax.get("https://my.tado.com/api/v2/homes/" + this.homeId + "/state", this.accessToken);
+        const response = await this.httpGet("https://my.tado.com/api/v2/homes/" + this.homeId + "/state");
 
         if (this.config.analytics === true) {
             this.log.debug("[Analytics] Home State: %s", JSON.stringify(response, null, 2));
         }
-
-        this.getErrors(response, null);
 
         return response;
     }
@@ -165,7 +159,7 @@ class TadoClient {
             this.log.debug("[Analytics] Setting Home State: %s", JSON.stringify(homeState, null, 2));
         }
 
-        const response = await this.ajax.put("https://my.tado.com/api/v2/homes/" + this.homeId + "/presenceLock", this.accessToken, homeState);
+        const response = await this.httpPut("https://my.tado.com/api/v2/homes/" + this.homeId + "/presenceLock", homeState);
 
         if (this.config.analytics === true) {
             this.log.debug("[Analytics] Set Home State Response: %s", JSON.stringify(response, null, 2));
@@ -178,13 +172,11 @@ class TadoClient {
 
         await this.connect();
 
-        const response = await this.ajax.get("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones", this.accessToken);
+        const response = await this.httpGet("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones");
 
         if (this.config.analytics === true) {
             this.log.debug("[Analytics] Zones: %s", JSON.stringify(response, null, 2));
         }
-
-        this.getErrors(response, null);
 
         return response;
     }
@@ -193,13 +185,11 @@ class TadoClient {
 
         await this.connect();
 
-        const response = await this.ajax.get("https://my.tado.com/api/v2/homes/" + this.homeId + "/zoneStates", this.accessToken);
+        const response = await this.httpGet("https://my.tado.com/api/v2/homes/" + this.homeId + "/zoneStates");
 
         if (this.config.analytics === true) {
             this.log.debug("[Analytics] Zone States: %s", JSON.stringify(response, null, 2));
         }
-
-        this.getErrors(response, null);
 
         return response;
     }
@@ -208,13 +198,11 @@ class TadoClient {
 
         await this.connect();
 
-        const response = await this.ajax.get("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones/" + zoneId + "/state", this.accessToken);
+        const response = await this.httpGet("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones/" + zoneId + "/state");
 
         if (this.config.analytics === true) {
             this.log.debug("[Analytics] Zone State: %s", JSON.stringify(response, null, 2));
         }
-
-        this.getErrors(response, null);
 
         return response;
     }
@@ -223,13 +211,11 @@ class TadoClient {
 
         await this.connect();
 
-        const response = await this.ajax.get("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones/" + zoneId + "/defaultOverlay", this.accessToken);
+        const response = await this.httpGet("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones/" + zoneId + "/defaultOverlay");
 
         if (this.config.analytics === true) {
             this.log.debug("[Analytics] Zone Default Overlay: %s", JSON.stringify(response, null, 2));
         }
-
-        this.getErrors(response, null);
 
         return response;
     }
@@ -238,13 +224,11 @@ class TadoClient {
 
         await this.connect();
 
-        const response = await this.ajax.get("https://my.tado.com/api/v2/homes/" + this.homeId + "/devices", this.accessToken);
+        const response = await this.httpGet("https://my.tado.com/api/v2/homes/" + this.homeId + "/devices");
 
         if (this.config.analytics === true) {
             this.log.debug("[Analytics] Devices: %s", JSON.stringify(response, null, 2));
         }
-
-        this.getErrors(response, null);
 
         return response;
     }
@@ -257,13 +241,11 @@ class TadoClient {
             this.log.debug("[Analytics] Setting Overlay: %s", JSON.stringify(overlay, null, 2));
         }
 
-        const response = await this.ajax.put("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones/" + zoneId + "/overlay", this.accessToken, overlay);
+        const response = await this.httpPut("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones/" + zoneId + "/overlay", overlay);
 
         if (this.config.analytics === true) {
             this.log.debug("[Analytics] Set Overlay Response: %s", JSON.stringify(response, null, 2));
         }
-
-        this.getErrors(response, null);
 
         return response;
     }
@@ -276,32 +258,169 @@ class TadoClient {
             this.log.debug("[Analytics] Deleting Overlay...");
         }
 
-        const response = await this.ajax.delete("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones/" + zoneId + "/overlay", this.accessToken);
+        // We never get a response for DELETE .../overlay
+        await this.httpDelete("https://my.tado.com/api/v2/homes/" + this.homeId + "/zones/" + zoneId + "/overlay");
 
-        // not sure whether we ever get a response here
-        if (this.config.analytics === true) {
-            this.log.debug("[Analytics] Delete Overlay Response: %s", response);
-        }
+        // if (this.config.analytics === true) {
+        //     this.log.debug("[Analytics] Delete Overlay Response: %s", response);
+        // }
 
-        return response;
+        // So just return true
+        return true;
     }
 
-    getErrors(response, reqField) {
-        if (Object.prototype.hasOwnProperty.call(response, "error")) {
-            if (Object.prototype.hasOwnProperty.call(response, "data")) {
-                this.log.debug("[Data] " + response.data);
+    async httpLogin(url, credentials) {
+
+        const headers = new Headers();
+        headers.append("Content-Type", "application/x-www-form-urlencoded");
+
+        const options = {
+            method: "POST",
+            headers: headers,
+            body: this.urlencodeObject(credentials),
+        };
+
+        const response = await fetch(url, options);
+
+        if (!response.ok) {
+            const error = await this.getErrorDescription(response);
+            throw new Error(`[API] ${error}`);
+        }
+
+        return await response.json();
+    }
+
+    async httpGet(url) {
+
+        const headers = new Headers();
+        headers.append("Authorization", "Bearer " + this.accessToken);
+
+        const options = {
+            method: "GET",
+            headers: headers,
+        };
+
+        const response = await fetch(url, options);
+
+        if (!response.ok) {
+            const error = await this.getErrorDescription(response);
+            throw new Error(`[API] ${error}`);
+        }
+
+        return await response.json();
+    }
+
+    async httpPut(url, data) {
+
+        const headers = new Headers();
+        headers.append("Content-Type", "application/json; charset=utf-8");
+        headers.append("Authorization", "Bearer " + this.accessToken);
+
+        const options = {
+            method: "PUT",
+            headers: headers,
+            body: JSON.stringify(data),
+        };
+
+        const response = await fetch(url, options);
+
+        if (!response.ok) {
+            const error = await this.getErrorDescription(response);
+            throw new Error(`[API] ${error}`);
+        }
+
+        return await response.json();
+    }
+
+    async httpDelete(url) {
+
+        const headers = new Headers();
+        headers.append("Content-Type", "application/json; charset=utf-8");
+        headers.append("Authorization", "Bearer " + this.accessToken);
+
+        const options = {
+            method: "DELETE",
+            headers: headers,
+        };
+
+        const response = await fetch(url, options);
+
+        if (!response.ok) {
+            const error = await this.getErrorDescription(response);
+            throw new Error(`[API] ${error}`);
+        }
+
+        // We never get a response for DELETE .../overlay
+        // so trying to parse as JSON results in an error
+        // return await response.json();
+
+        return true;
+    }
+
+
+    //! Helper functions
+
+    urlencodeObject(obj) {
+
+        let encoded = "";
+
+        for (const key in obj) {
+            if (Object.hasOwn(obj, key)) {
+                encoded += (encoded ? "&" : "") + this.encodeString(key) + "=" + this.encodeString(obj[key]);
             }
-            throw new Error("[API] " + (response.error.message || response.error));
         }
-        if (Object.prototype.hasOwnProperty.call(response, "errors")) {
-            throw new Error("[API] " + response.errors[0].title);
+
+        return encoded;
+    }
+
+    encodeString(s) {
+        return encodeURIComponent(s).replace(/%20/g, "+");
+    }
+
+    async getErrorDescription(response) {
+
+        // Error examples
+        // {"error":"invalid_grant","error_description":"Bad credentials"}
+        // {"errors":[{"code":"unauthorized","title":"Full authentication is required to access this resource"}]}
+
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+
+            if (this.config.analytics === true) {
+                this.log.debug(await response.text());
+            }
+
+            return "Got error, but response is not JSON";
         }
-        if (Object.prototype.hasOwnProperty.call(response, "error_description")) {
-            throw new Error("[API] " + response.error_description);
+
+        try {
+
+            const errorMessage = await response.json();
+
+            if (Object.hasOwn(errorMessage, "error_description")) {
+                return errorMessage["error_description"];
+            }
+
+            if (Object.hasOwn(errorMessage, "errors")) {
+                const errors = errorMessage["errors"];
+                if (
+                    Array.isArray(errors)
+                    && errors.length > 0
+                    && typeof errors[0] === "object"
+                    && !Array.isArray(errors[0])
+                    && errors[0] !== null
+                    && Object.hasOwn(errors[0], "title")
+                ) {
+                    return errors[0].title;
+                }
+            }
+
+        } catch (error) {
+            this.log.debug(error.message || error);
+            return "Error reading response";
         }
-        if (reqField && !Object.prototype.hasOwnProperty.call(response, reqField)) {
-            throw new Error("[API] Response does not contain " + reqField);
-        }
+
+        return `Status: ${response.status} ${response.statusText}`;
     }
 
     reset() {
