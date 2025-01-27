@@ -1,3 +1,10 @@
+/**
+ * platform.js
+ * homebridge-tado
+ *
+ * @copyright 2021 Hendrik Meinl
+ */
+
 "use strict";
 
 const PLATFORM_NAME = "tado";
@@ -10,23 +17,21 @@ class TadoPlatform {
 
     constructor(log, config, api) {
 
+        if (!api || !config) {
+            return;
+        }
+
+        if (!config.email || !config.password) {
+            log.error("Please set your tado° email and password in the config first");
+            return;
+        }
+
         this.log = log;
         this.config = config;
         this.api = api;
 
-        this.Service = this.api.hap.Service;
-        this.Characteristic = this.api.hap.Characteristic;
-
-        this.accessories = [];
-
-        if (!this.api || !this.config) {
-            return;
-        }
-
-        if (!this.config.email || !this.config.password) {
-            this.log.error("No email or password given. Service stopped.");
-            return;
-        }
+        this.accessories = new Map();
+        this.discoveredCacheUUIDs = [];
 
         this.tadoZones = [];
         this.lastZoneUpdate = 0;
@@ -35,128 +40,137 @@ class TadoPlatform {
         this.updateInterval = Math.max(15, (this.config.updateInterval || 300));
 
         this.tadoClient = new TadoClient(this.log, this.config);
-        this.tadoClient.setCredentials(this.config.email, this.config.password, this.config.homeId);
 
         this.api.on("didFinishLaunching", () => {
-            this.log.debug("Searching new thermostats...");
-            this.discoverDevices();
+
+            this.discoverDevices().then(() => {
+
+                // clean up
+                this.accessories.clear();
+                this.discoveredCacheUUIDs = [];
+
+                this.updateThermostats();
+
+            }).catch((error) => {
+
+                // clean up
+                this.accessories.clear();
+                this.discoveredCacheUUIDs = [];
+                this.tadoZones = [];
+                this.tadoClient = null;
+
+                this.log.error(error.message || error);
+                this.log.error("Cannot continue setting up thermostats");
+                this.log.info("Plugin stopped");
+            });
         });
     }
 
     configureAccessory(accessory) {
-        this.log.debug("Loading thermostat from cache: %s", accessory.displayName);
-        this.accessories.push(accessory);
+        this.accessories.set(accessory.UUID, accessory);
     }
 
     async discoverDevices() {
 
-        let temperatureUnit = 0;
-        let hasAutoAssist = false;
+        this.log.info("Contacting my.tado.com ...");
 
-        // get home info and set temperatureUnit
 
-        try {
-            const response = await this.tadoClient.getHome();
-            temperatureUnit = response.temperatureUnit === "CELSIUS" ? 0 : 1;
-            hasAutoAssist = response.skills && response.skills.includes("AUTO_ASSIST");
-        } catch (error) {
-            this.log.error(error.message || error);
-            this.log.error("Cannot continue setting up devices. Service stopped.");
-            return;
+        // Get home info and set temperatureUnit
+
+        const response = await this.tadoClient.getHome();
+
+        const temperatureUnit = response.temperatureUnit === "CELSIUS" ? 0 : 1;
+        const hasAutoAssist = response.skills && response.skills.includes("AUTO_ASSIST");
+
+
+        // Get zones and configure thermostats
+
+        const thermostats = [];
+        const zones = await this.tadoClient.getZones();
+
+        for (const zone of zones) {
+
+            // Find thermostats
+
+            if (zone.type === "HEATING") {
+
+                // Find zone leader
+
+                let zoneLeader = zone.devices.find((device) => device.duties.includes("ZONE_LEADER"));
+                if (zoneLeader === undefined) {
+                    if (zone.devices.length > 0) {
+                        this.log.warn("No zone leader found for zone %s. This zone may not work as expected.", zone.name);
+                        zoneLeader = zone.devices[0];
+                    } else {
+                        this.log.warn("No devices found in zone %s.", zone.name);
+                        continue;
+                    }
+                }
+
+                thermostats.push({
+                    UUID        : this.api.hap.uuid.generate(zoneLeader.serialNo),
+                    displayName : zone.name,
+                    device      : {
+                        zoneId       : zone.id,
+                        deviceType   : zoneLeader.deviceType,
+                        serialNo     : zoneLeader.serialNo,
+                        serialShort  : zoneLeader.shortSerialNo,
+                        FwVersion    : zoneLeader.currentFwVersion,
+                        currentState : 0,
+                        targetState  : 0,
+                        currentTemp  : 0,
+                        targetTemp   : 5,
+                        displayUnits : temperatureUnit,
+                        humidity     : 0,
+                        batteryState : zoneLeader.batteryState,
+                    },
+                });
+            }
         }
 
-        // get zones and configure thermostats
 
-        try {
+        // Restore/Register thermostat
 
-            const thermostats = [];
-            const zones = await this.tadoClient.getZones();
-
-            for (const zone of zones) {
-
-                // find thermostats
-                if (zone.type === "HEATING") {
-
-                    // find zone leader
-                    let zoneLeader = 0;
-                    zone.devices.some((device, index) => {
-                        if (device.duties.includes("ZONE_LEADER")) {
-                            zoneLeader = index;
-                            return true;
-                        }
-                    });
-
-                    thermostats.push({
-                        UUID        : this.api.hap.uuid.generate(zone.devices[zoneLeader].serialNo),
-                        displayName : zone.name,
-                        device      : {
-                            zoneId       : zone.id,
-                            deviceType   : zone.devices[zoneLeader].deviceType,
-                            serialNo     : zone.devices[zoneLeader].serialNo,
-                            serialShort  : zone.devices[zoneLeader].shortSerialNo,
-                            FwVersion    : zone.devices[zoneLeader].currentFwVersion,
-                            currentState : 0,
-                            targetState  : 0,
-                            currentTemp  : 0,
-                            targetTemp   : 5,
-                            displayUnits : temperatureUnit,
-                            humidity     : 0,
-                            batteryState : zone.devices[zoneLeader].batteryState,
-                        },
-                    });
-                }
+        for (const thermostat of thermostats) {
+            const existingThermostat = this.accessories.get(thermostat.UUID);
+            if (existingThermostat) {
+                this.log.debug("Restoring thermostat %s", existingThermostat.displayName);
+                existingThermostat.context.device = thermostat.device;
+                this.api.updatePlatformAccessories([existingThermostat]);
+                this.tadoZones.push(new TadoThermostat(this, existingThermostat));
+            } else {
+                this.log.info("Creating thermostat %s", thermostat.displayName);
+                const newThermostat = new this.api.platformAccessory(thermostat.displayName, thermostat.UUID);
+                newThermostat.context.device = thermostat.device;
+                this.tadoZones.push(new TadoThermostat(this, newThermostat));
+                this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [newThermostat]);
             }
-
-            // restore/register thermostat
-            for (const thermostat of thermostats) {
-
-                const cachedThermostat = this.accessories.find(accessory => accessory.UUID === thermostat.UUID);
-
-                if (cachedThermostat) {
-                    this.log.debug("Restoring thermostat: %s", cachedThermostat.displayName);
-                    cachedThermostat.context.device = thermostat.device;
-                    this.api.updatePlatformAccessories([cachedThermostat]);
-                    this.tadoZones.push(new TadoThermostat(this, cachedThermostat));
-
-                } else {
-                    this.log.info("Adding new thermostat: %s", thermostat.displayName);
-                    const newThermostat = new this.api.platformAccessory(thermostat.displayName, thermostat.UUID);
-                    newThermostat.context.device = thermostat.device;
-                    this.tadoZones.push(new TadoThermostat(this, newThermostat));
-                    this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [newThermostat]);
-                }
-            }
-
-            // find orphaned thermostats
-            const orphanedThermostats = this.accessories.filter(accessory => {
-                return !thermostats.find(thermostat => thermostat.UUID === accessory.UUID);
-            });
-
-            // remove orphaned thermostats
-            if (orphanedThermostats.length > 0) {
-                this.log.info("Removing orphaned thermostats...");
-                this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, orphanedThermostats);
-            }
-
-        } catch (error) {
-            this.log.error(error.message || error);
-            this.log.error("Cannot continue setting up devices. Service stopped.");
-            return;
+            this.discoveredCacheUUIDs.push(thermostat.UUID);
         }
 
-        // ready and running
+
+        // Clean up
+
+        for (const [uuid, accessory] of this.accessories) {
+            if (!this.discoveredCacheUUIDs.includes(uuid)) {
+                this.log.debug("Removing thermostat %s from cache", accessory.displayName);
+                this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+            }
+        }
+
+
+        // Ready and running
+
         this.log.info("Ready");
 
         if (!this.config.homeId) {
-            this.log.info("Home ID: %s", this.tadoClient.homeId);
+            this.log.info("Your Home ID: %s", this.tadoClient.homeId);
         }
 
-        this.log.debug("Auto Assist %s", hasAutoAssist ? "available" : "not available");
-
-        this.runUpdateLoop();
+        this.log.info("Auto Assist is %s", hasAutoAssist ? "available" : "not available");
     }
 
-    async runUpdateLoop() {
+    async updateThermostats() {
 
         // tado° web client uses a 15s timer for zone state updates
         // so we consider the data is still fresh within this timeframe
@@ -168,7 +182,7 @@ class TadoPlatform {
         }
 
 
-        // in case of previous errors, pause updates for 5 minutes
+        // In case of previous errors, pause updates for 5 minutes
 
         const timeSinceLastError = (Date.now() - this.lastError) / 1000;
 
@@ -179,7 +193,7 @@ class TadoPlatform {
         this.lastError = 0;
 
 
-        // stop timer -> update -> rinse & repeat
+        // Stop timer -> update -> rinse & repeat
 
         if (this.updateTimer) {
             clearInterval(this.updateTimer);
@@ -188,22 +202,20 @@ class TadoPlatform {
         await this.update();
 
         this.updateTimer = setInterval(
-            this.runUpdateLoop.bind(this),
+            this.updateThermostats.bind(this),
             this.updateInterval*1000
         );
     }
 
     async update() {
 
-        // zone update
+        // Zone update
 
         this.lastZoneUpdate = Date.now();
 
         try {
-            this.log.debug("Updating zones");
-
             if (this.config.useNewAPI) {
-                // new API call
+                // New API call
                 const response = await this.tadoClient.getZoneStates();
                 for (const tadoZone of this.tadoZones) {
                     const zoneId = tadoZone.accessory.context.device.zoneId;
@@ -212,41 +224,36 @@ class TadoPlatform {
                         tadoZone.updateState(state);
                     }
                 }
-
             } else {
                 // old API call(s)
                 for (const tadoZone of this.tadoZones) {
                     await this.updateZone(tadoZone);
                 }
             }
-
         } catch (error) {
             this.lastError = Date.now();
             this.log.error(error.message || error);
             return;
         }
 
-        // battery update
+        // Battery update
 
         const needsBatteryUpdate = this.lastBatteryUpdate+(12*60*60*1000) < Date.now(); // twice a day is enough
 
         if (needsBatteryUpdate) {
             try {
-                this.log.debug("Updating battery states");
-
                 const devices = await this.tadoClient.getDevices();
                 for (const device of devices) {
                     const tadoZone = this.tadoZones.find(zone => zone.accessory.context.device.serialNo === device.serialNo);
                     if (tadoZone) {
-                        if (Object.prototype.hasOwnProperty.call(device, "batteryState")) {
+                        if (Object.hasOwn(device, "batteryState")) {
                             tadoZone.updateBattery(device.batteryState);
                         }
-                        if (Object.prototype.hasOwnProperty.call(device, "currentFwVersion")) {
+                        if (Object.hasOwn(device, "currentFwVersion")) {
                             tadoZone.updateAccessoryInfo(device.currentFwVersion);
                         }
                     }
                 }
-
             } catch (error) {
                 this.lastError = Date.now();
                 this.log.error(error.message || error);
@@ -257,6 +264,7 @@ class TadoPlatform {
         }
     }
 
+    // Old API call. May be removed in next version
     async updateZone(tadoZone) {
 
         const accessory  = tadoZone.accessory;

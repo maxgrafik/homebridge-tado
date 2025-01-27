@@ -32,18 +32,6 @@
                 "description": "Leave blank for auto discovery",
                 "placeholder": "12345"
             },
-            "useNewAPI": {
-                "type": "boolean",
-                "title": "Use new API calls",
-                "description": "Disable to use the old method of getting zone state updates (more requests to tado server).",
-                "default": true
-            },
-            "analytics": {
-                "type": "boolean",
-                "title": "Enable Analytics",
-                "description": "This logs the whole communication with the tado° servers to the console. This may expose sensitive information. Use with caution and at your own risk.",
-                "default": false
-            },
             "updateInterval": {
                 "type": "number",
                 "title": "Zone state updates",
@@ -52,6 +40,18 @@
                 "minimum": 15,
                 "maximum": 3600,
                 "default": 300
+            },
+            "analytics": {
+                "type": "boolean",
+                "title": "Enable Analytics",
+                "description": "This logs the whole communication with the tado° servers to the console. This may expose sensitive information. Use with caution and at your own risk.",
+                "default": false
+            },
+            "useNewAPI": {
+                "type": "boolean",
+                "title": "Use new API calls",
+                "description": "Disable to use the old method of getting zone state updates (more requests to tado server).",
+                "default": true
             }
         }
     },
@@ -95,8 +95,8 @@
             "expandable": true,
             "expanded": false,
             "items": [
-                "useNewAPI",
-                "analytics"
+                "analytics",
+                "useNewAPI"
             ]
         }
     ]

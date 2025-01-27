@@ -30,9 +30,9 @@ I recommend using [Homebridge UI](https://github.com/homebridge/homebridge-confi
         "email": <your_tado_email>,
         "password": <your_tado_password>,
         "homeId": <your_home_id>,
-        "useNewAPI": true,
-        "analytics": false,
-        "updateInterval": 300
+        "updateInterval": <seconds>,
+        "analytics": <true|false>,
+        "useNewAPI": <true|false>
     }
 ]
 ```
@@ -42,9 +42,11 @@ Option | Description | Default
 **email** | The email address you use to login into your tado° account | -
 **password** | Your tado° account password | -
 **homeId** | Your home ID. If you leave this blank, the plugin will try to auto discover it. If there is more than 1 home in your tado° account, see the log file for discovered home IDs and set accordingly | -
-**useNewAPI** | Use alternate method for getting state updates (with less server requests) | true
-**analytics** | This logs the whole communication with the tado° servers to the console! Use with caution and at your own risk | false
 **updateInterval** | Time in seconds to request state updates from tado° | 300
+**analytics** | This logs the whole communication with the tado° servers to the console! Use with caution and at your own risk | false
+**useNewAPI** | Use alternate method for getting state updates (with less server requests)<sup>*</sup> | true
+
+<small><sup>*</sup>I will likely remove the old code in the next version. I haven’t encountered any problems in almost a year.</small>
 
 
 #### About update interval
