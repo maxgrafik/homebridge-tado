@@ -21,11 +21,6 @@ class TadoPlatform {
             return;
         }
 
-        if (!config.email || !config.password) {
-            log.error("Please set your tado° email and password in the config first");
-            return;
-        }
-
         this.log = log;
         this.config = config;
         this.api = api;
@@ -39,7 +34,7 @@ class TadoPlatform {
         this.lastError = 0;
         this.updateInterval = Math.max(15, (this.config.updateInterval || 300));
 
-        this.tadoClient = new TadoClient(this.log, this.config);
+        this.tadoClient = new TadoClient(this.log, this.config, this.api);
 
         this.api.on("didFinishLaunching", () => {
 
@@ -61,7 +56,7 @@ class TadoPlatform {
 
                 this.log.error(error.message || error);
                 this.log.error("Cannot continue setting up thermostats");
-                this.log.info("Plugin stopped");
+                this.log.error("Plugin stopped");
             });
         });
     }
@@ -72,7 +67,16 @@ class TadoPlatform {
 
     async discoverDevices() {
 
-        this.log.info("Contacting my.tado.com ...");
+        this.log.info("Connecting to tado.com...");
+
+        await this.tadoClient.connect();
+
+
+        // Get home id
+
+        if (!this.config.homeId) {
+            await this.tadoClient.getHomeId();
+        }
 
 
         // Get home info and set temperatureUnit
@@ -209,25 +213,17 @@ class TadoPlatform {
 
     async update() {
 
-        // Zone update
+        // Update all zones
 
         this.lastZoneUpdate = Date.now();
 
         try {
-            if (this.config.useNewAPI) {
-                // New API call
-                const response = await this.tadoClient.getZoneStates();
-                for (const tadoZone of this.tadoZones) {
-                    const zoneId = tadoZone.accessory.context.device.zoneId;
-                    const state = response.zoneStates[zoneId];
-                    if (state) {
-                        tadoZone.updateState(state);
-                    }
-                }
-            } else {
-                // old API call(s)
-                for (const tadoZone of this.tadoZones) {
-                    await this.updateZone(tadoZone);
+            const response = await this.tadoClient.getZoneStates();
+            for (const tadoZone of this.tadoZones) {
+                const zoneId = tadoZone.accessory.context.device.zoneId;
+                const state = response.zoneStates[zoneId];
+                if (state) {
+                    tadoZone.updateState(state);
                 }
             }
         } catch (error) {
@@ -264,8 +260,9 @@ class TadoPlatform {
         }
     }
 
-    // Old API call. May be removed in next version
     async updateZone(tadoZone) {
+
+        // Update single zone
 
         const accessory  = tadoZone.accessory;
         const thermostat = accessory.context.device;

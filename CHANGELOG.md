@@ -1,5 +1,9 @@
 # Change Log
 
+## v2.2.0  (2025-03-27)
+
+- Implemented new [device code grant flow](https://support.tado.com/en/articles/8565472-how-do-i-authenticate-to-access-the-rest-api)
+
 ## v2.1.0  (2025-01-27)
 
 ### Code revisit
