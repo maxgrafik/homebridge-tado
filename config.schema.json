@@ -11,21 +11,6 @@
                 "title": "tado",
                 "default": "tado"
             },
-            "email": {
-                "type": "string",
-                "title": "Email",
-                "notitle": true,
-                "description": "Your tado° email",
-                "required": true,
-                "format": "email"
-            },
-            "password": {
-                "type": "string",
-                "title": "Password",
-                "notitle": true,
-                "description": "Your tado° password",
-                "required": true
-            },
             "homeId": {
                 "type": "string",
                 "title": "Home ID",
@@ -43,40 +28,18 @@
             },
             "analytics": {
                 "type": "boolean",
-                "title": "Enable Analytics",
-                "description": "This logs the whole communication with the tado° servers to the console. This may expose sensitive information. Use with caution and at your own risk.",
+                "title": "Analytics",
+                "description": "Enable this option to save all responses from the tado° API to disk. The log file will be written to the folder »tado« inside your Homebridge storage folder.",
                 "default": false
-            },
-            "useNewAPI": {
-                "type": "boolean",
-                "title": "Use new API calls",
-                "description": "Disable to use the old method of getting zone state updates (more requests to tado server).",
-                "default": true
             }
         }
     },
     "form": [
         {
             "type": "fieldset",
-            "title": "Login",
-            "expandable": false,
-            "items": [
-                {
-                    "type": "flex",
-                    "flex-flow": "row wrap",
-                    "items": [
-                        "email",
-                        "password"
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "fieldset",
             "title": "Your home",
             "description": "Set your tado° home ID and adjust the update interval",
-            "expandable": true,
-            "expanded": false,
+            "expandable": false,
             "items": [
                 {
                     "type": "flex",
@@ -95,8 +58,7 @@
             "expandable": true,
             "expanded": false,
             "items": [
-                "analytics",
-                "useNewAPI"
+                "analytics"
             ]
         }
     ]

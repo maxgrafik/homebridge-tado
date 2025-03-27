@@ -27,26 +27,23 @@ I recommend using [Homebridge UI](https://github.com/homebridge/homebridge-confi
     {
         "platform": "tado",
         "name": "tado",
-        "email": <your_tado_email>,
-        "password": <your_tado_password>,
         "homeId": <your_home_id>,
         "updateInterval": <seconds>,
-        "analytics": <true|false>,
-        "useNewAPI": <true|false>
+        "analytics": <true|false>
     }
 ]
 ```
 
 Option | Description | Default
 ------ | ----------- | -------
-**email** | The email address you use to login into your tado° account | -
-**password** | Your tado° account password | -
 **homeId** | Your home ID. If you leave this blank, the plugin will try to auto discover it. If there is more than 1 home in your tado° account, see the log file for discovered home IDs and set accordingly | -
 **updateInterval** | Time in seconds to request state updates from tado° | 300
-**analytics** | This logs the whole communication with the tado° servers to the console! Use with caution and at your own risk | false
-**useNewAPI** | Use alternate method for getting state updates (with less server requests)<sup>*</sup> | true
+**analytics** | Saves responses from the tado° API to disk. The log file will be written to the folder »tado« inside your Homebridge storage folder | false
 
-<small><sup>*</sup>I will likely remove the old code in the next version. I haven’t encountered any problems in almost a year.</small>
+
+#### Login
+
+Starting with v2.2.0 this plugin uses the [device code grant flow](https://support.tado.com/en/articles/8565472-how-do-i-authenticate-to-access-the-rest-api) to authenticate. To complete this process you will need to follow a verification link (which can be found in `homebridge.log`). Therefore I highly recommend using [Homebridge UI](https://github.com/homebridge/homebridge-config-ui-x), where you can just click the link.
 
 
 #### About update interval
