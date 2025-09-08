@@ -44,7 +44,7 @@ class TadoPlatform {
                 this.accessories.clear();
                 this.discoveredCacheUUIDs = [];
 
-                this.updateThermostats();
+                this.update();
 
             }).catch((error) => {
 
@@ -174,14 +174,11 @@ class TadoPlatform {
         this.log.info("Auto Assist is %s", hasAutoAssist ? "available" : "not available");
     }
 
-    async updateThermostats() {
-
-        // tado° web client uses a 15s timer for zone state updates
-        // so we consider the data is still fresh within this timeframe
+    async update() {
 
         const timeSinceLastUpdate = (Date.now() - this.lastZoneUpdate) / 1000;
 
-        if (timeSinceLastUpdate <= 15) {
+        if (timeSinceLastUpdate <= this.updateInterval) {
             return;
         }
 
@@ -203,15 +200,15 @@ class TadoPlatform {
             clearInterval(this.updateTimer);
         }
 
-        await this.update();
+        await this.updateZones();
 
         this.updateTimer = setInterval(
-            this.updateThermostats.bind(this),
+            this.update.bind(this),
             this.updateInterval*1000
         );
     }
 
-    async update() {
+    async updateZones() {
 
         // Update all zones
 
@@ -234,7 +231,7 @@ class TadoPlatform {
 
         // Battery update
 
-        const needsBatteryUpdate = this.lastBatteryUpdate+(12*60*60*1000) < Date.now(); // twice a day is enough
+        const needsBatteryUpdate = this.lastBatteryUpdate+(24*60*60*1000) < Date.now(); // once a day is enough
 
         if (needsBatteryUpdate) {
             try {

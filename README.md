@@ -14,7 +14,7 @@
 
 ## Description
 
-This [Homebridge](https://homebridge.io) plugin exposes tado° thermostats to Apple HomeKit. If you already own the HomeKit compatible tado° bridge, this plugin might not be for you. Based on the work of [Terence Eden](https://shkspr.mobi/blog/2019/02/tado-api-guide-updated-for-2019/).
+This [Homebridge](https://homebridge.io) plugin exposes tado° thermostats to Apple HomeKit. If you already own the HomeKit compatible tado° bridge, this plugin might not be for you.
 
 
 ## Configuration
@@ -48,7 +48,16 @@ Starting with v2.2.0 this plugin uses the [device code grant flow](https://suppo
 
 #### About update interval
 
-This plugin updates the thermostat state whenever needed, e.g. when opening Apple's Home app. In addition it updates the state in the background every 300 seconds (5 minutes), which is likely enough. You may change this timespan by setting *updateInterval* in config, but I think there's no need to hit the tado° servers every 5 seconds.
+By default this plugin updates the state of your thermostats in the background every 300 seconds (5 minutes), which is likely enough.
+
+**Heads up!** If you're not an Auto-Assist subscriber, your usage of the tado° API may be limited to [100 requests/day](https://support.tado.com/en/articles/12165739-limitation-for-rest-api-usage). In this case you might need to increase the update interval to some reasonable number.
+
+To give you some insight: Each state update requires 1 request. No matter how many thermostats you have. Plus 1 additional request every 24 hours for battery levels. Resulting in a total of 289 requests/day on a 5 minute update interval (assuming access-token refresh does **not** count as API call, which is not clear at the moment).
+
+However, each change you make to temperature or mode, requires 2 requests *per thermostat(!)*: 1 for getting the override defaults + 1 for setting the actual override.
+
+So, you do the math!
+
 
 ## Notes
 

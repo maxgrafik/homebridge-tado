@@ -123,9 +123,6 @@ class TadoThermostat {
     }
 
     getCurrentTemperature() {
-        // getCurrentTemperature is triggered whenever opening the home app
-        // We use this event to force an update for all thermostats
-        this.platform.updateThermostats();
         return this.accessory.context.device.currentTemp;
     }
 
@@ -258,8 +255,42 @@ class TadoThermostat {
 
                 this.platform.tadoClient.getZoneDefaultOverlay(this.accessory.context.device.zoneId).then((defaultOverlay) => {
                     const overlay = this.createOverlay(defaultOverlay, state, temperature);
-                    this.platform.tadoClient.setOverlay(this.accessory.context.device.zoneId, overlay).then(() => {
-                        this.platform.updateZone(this);
+                    this.platform.tadoClient.setOverlay(this.accessory.context.device.zoneId, overlay).then((response) => {
+
+                        // create intermediate state from response to avoid zone update request
+
+                        const intermediateState = {
+                            setting: {
+                                power: response.setting.power,
+                                temperature: {
+                                    celsius: response.setting.temperature?.celsius || 0
+                                }
+                            },
+                            overlayType: response.type,
+                            overlay: {
+                                setting: {
+                                    temperature: {
+                                        celsius: response.setting.temperature?.celsius || 0
+                                    }
+                                }
+                            },
+                            activityDataPoints: {
+                                heatingPower: {
+                                    percentage: 0
+                                }
+                            },
+                            sensorDataPoints: {
+                                insideTemperature: {
+                                    celsius: this.accessory.context.device.currentTemp
+                                },
+                                humidity: {
+                                    percentage: this.accessory.context.device.humidity
+                                }
+                            }
+                        };
+
+                        this.updateState(intermediateState);
+
                     });
                 }).catch((error) => {
                     this.platform.lastError = Date.now();
@@ -281,18 +312,18 @@ class TadoThermostat {
         switch (defaultOverlay.terminationCondition.type) {
         case "TIMER":
             terminationCondition = {
-                typeSkillBasedApp: "TIMER",
+                type: "TIMER",
                 durationInSeconds: defaultOverlay.terminationCondition.durationInSeconds,
             };
             break;
         case "MANUAL":
             terminationCondition = {
-                typeSkillBasedApp: "MANUAL",
+                type: "MANUAL",
             };
             break;
         default:
             terminationCondition = {
-                typeSkillBasedApp: "NEXT_TIME_BLOCK",
+                type: "TADO_MODE",
             };
         }
 
@@ -318,7 +349,9 @@ class TadoThermostat {
                     type: "HEATING",
                     power: "OFF",
                 },
-                termination: terminationCondition,
+                termination: {
+                    type: "MANUAL",
+                },
             };
 
         } else if (state === 1) { // Manual mode
