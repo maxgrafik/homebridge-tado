@@ -1,0 +1,6 @@
+# ------------- Defaults ------------- #
+.eslintrc
+
+# OS generated files #
+.DS_Store
+.nova
