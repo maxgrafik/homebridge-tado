@@ -2,7 +2,7 @@
   "private": true,
   "displayName": "tado°",
   "name": "homebridge-tado",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "tado° thermostat plugin for Homebridge",
   "main": "src/index.js",
   "license": "MIT",
@@ -14,7 +14,7 @@
     "url": "https://github.com/maxgrafik/homebridge-tado/issues"
   },
   "engines": {
-    "node": "^18.20.4 || ^20.18.0 || ^22.10.0",
+    "node": "^20.18.0 || ^22.10.0 || ^24.0.0",
     "homebridge": "^1.8.0 || ^2.0.0-beta.0"
   },
   "keywords": [

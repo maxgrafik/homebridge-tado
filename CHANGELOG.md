@@ -1,5 +1,9 @@
 # Change Log
 
+## v2.4.0  (2026-04-12)
+
+- Update supported Node.js versions
+
 ## v2.3.0  (2025-09-08)
 
 - Some code changes to reduce API calls
