@@ -7,7 +7,7 @@
 # tado° for Homebridge
 
 ![Version](https://img.shields.io/github/package-json/v/maxgrafik/homebridge-tado)
-![Homebridge support](https://img.shields.io/badge/Homebridge-1.8.0_%7C_2.0.0--beta-blue)
+![Homebridge support](https://img.shields.io/badge/Homebridge-1.8.0_%7C_2.0.0-blue)
 
 </span>
 

@@ -1,13 +1,18 @@
 # Change Log
 
+## v2.4.1  (2026-05-14)
+
+- Updated supported Homebridge versions
+- Updated README
+
 ## v2.4.0  (2026-04-12)
 
-- Update supported Node.js versions
+- Updated supported Node.js versions
 
 ## v2.3.0  (2025-09-08)
 
 - Some code changes to reduce API calls
-- Update README
+- Updated README
 
 ## v2.2.0  (2025-03-27)
 
